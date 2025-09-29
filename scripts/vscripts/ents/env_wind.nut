@@ -2,6 +2,12 @@ IncludeScript( "weather/ents/basescriptentity" )
 
 class CScriptEnvWind extends CBaseScriptEntity {
 
+    gust_active = false
+
+    _thinks    = null
+    _gustStart = null
+    _gustEnd   = null
+
     m_EnvWindShared = {
 
         m_iMinWind           = 0
@@ -19,8 +25,8 @@ class CScriptEnvWind extends CBaseScriptEntity {
         m_flGustDuration     = 0.0
         m_flInitialWindSpeed = 0.0
 
-        m_OnGustEnd          = null
         m_OnGustStart        = null
+        m_OnGustEnd          = null
 
         CEnvWindWindThink    = null
     }
@@ -43,6 +49,8 @@ class CScriptEnvWind extends CBaseScriptEntity {
         scope.CScriptEnvWind <- _class
         scope.CScriptEnvWindWindThink <- CScriptEnvWindWindThink
 
+        self.ConnectOutput( "OnGustStart", "m_OnGustStart" )
+        self.ConnectOutput( "OnGustEnd", "m_OnGustEnd" )
         AddThinkToEnt( self, "CScriptEnvWindWindThink" )
 
         foreach( prop, val in m_EnvWindShared )
@@ -50,20 +58,8 @@ class CScriptEnvWind extends CBaseScriptEntity {
                 m_EnvWindShared[prop] = GetSetProp( prop )
 
         m_EnvWindShared.m_flStartTime = Time()
-    }
-
-    function CScriptEnvWindWindThink() {
-
-        CScriptEnvWind.m_flWindSpeed = Time()
-        OnWindUpdate( CScriptEnvWindWindThink )
-
-        return -1
-    }
-
-    function OnWindUpdate( func = null ) {
-
-        if ( func )
-            func.call( scope )
+        m_EnvWindShared.m_OnGustStart = m_OnGustStart
+        m_EnvWindShared.m_OnGustEnd = m_OnGustEnd
     }
 
     function GetSetProp( prop, ... ) {
@@ -79,8 +75,6 @@ class CScriptEnvWind extends CBaseScriptEntity {
         local args = [this, self, prop]
         local ret
 
-        printl( self )
-
         try {
             if ( type == 'f' )
                 ret = NetProps[prefix + "Float"].acall(args.extend(vargv) )
@@ -95,6 +89,60 @@ class CScriptEnvWind extends CBaseScriptEntity {
 
         return ret
         
+    }
+
+    function CScriptEnvWindWindThink() {
+
+        foreach ( think in CScriptEnvWind._thinks )
+            think()
+
+        return -1
+    }
+
+    function OnWindUpdate( func ) {
+
+        if ( !CScriptEnvWind._thinks )
+            CScriptEnvWind._thinks = [ func.bindenv( scope ) ]
+        else
+            CScriptEnvWind._thinks.append( func.bindenv( scope ) )
+    }
+
+    function OnGustStart( func ) {
+
+        if ( !CScriptEnvWind._gustStart )
+            CScriptEnvWind._gustStart = [ func.bindenv( scope ) ]
+        else
+            CScriptEnvWind._gustStart.append( func.bindenv( scope ) )
+    }
+    
+    function OnGustEnd( func ) {
+
+        if ( !CScriptEnvWind._gustEnd )
+            CScriptEnvWind._gustEnd = [ func.bindenv( scope ) ]
+        else
+            CScriptEnvWind._gustEnd.append( func.bindenv( scope ) )
+    }
+
+    function m_OnGustStart() {
+
+        CScriptEnvWind.gust_active = true
+
+        if ( !CScriptEnvWind._gustStart || !CScriptEnvWind._gustStart.len() )
+            return
+        
+        foreach ( func in CScriptEnvWind._gustStart )
+            func()
+    }
+    
+    function m_OnGustEnd() {
+
+        CScriptEnvWind.gust_active = false
+
+        if ( !CScriptEnvWind._gustEnd || !CScriptEnvWind._gustEnd.len() )
+            return
+        
+        foreach ( func in CScriptEnvWind._gustEnd )
+            func()
     }
 
     // function _SetupProps() {
