@@ -12,14 +12,14 @@ local wind = CScriptEnvWind( "__wind", {
     mingustdelay = 0,
     maxgustdelay = 1,
     gustduration = 5,
-    gustdirchange = 90
+    gustdirchange = 50
 
 }).self
 
 local prop = SpawnEntityFromTable( "info_particle_system", {
     targetname = "__prop",
     effect_name = "env_rain_gutterdrip",
-    origin = Vector( -711.345764, -2496.004150, 704.976562 ),
+    origin = Vector( -746.697876, -2470.621338, 740.933960 ),
     start_active = true
 })
 

@@ -91,9 +91,7 @@ class CScriptEnvWind extends CBaseScriptEntity {
 
             m_EnvWindShared[prop] = ret
 
-        } catch ( e ) {
-            error( e + self + "\n" )
-        }
+        } catch ( e ) {}
 
         return ret
         

@@ -17,7 +17,7 @@ class CBaseScriptEntity {
 
         NetProps.SetPropBool( self, "m_bForcePurgeFixedupStrings", true )
 
-        if ( !( "m_iTeamNum" in this ) )
+        if ( !BaseProps || !( "m_iTeamNum" in BaseProps ) )
             _SetupProps()
     }
 
