@@ -38,7 +38,8 @@ function WindTestThink() {
     // if ( diff > 1.0 )
         // printl( diff )
 
-    // this wind ent is currently freaking out, ignore and delay next think
+    // wind speed will occasionally spike to some much higher value, then come back down to reality on subsequent ticks.
+    // ignore unreasonably large jumps (10hu angle adjustment in a single tick)
     if ( diff > 10.0 )
         return 0.03 
 
