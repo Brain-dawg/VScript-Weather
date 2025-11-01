@@ -82,19 +82,19 @@ function VSWeather::GetValidAreas() {
             // secondary line trace loop, hull trace isn't very accurate
 
             local start = trace.start
-            VSWeather.Generators.NonBlockingLoop( @() trace.start != trace.end, 2, function( i ) {
+            // VSWeather.Generators.NonBlockingLoop( @() trace.start != trace.end, 2, function( i ) {
 
 
-                for ( local j = 0; j < 4; j++ ) {
+            //     for ( local j = 0; j < 4; j++ ) {
                     
-                    TraceLine( start, start + Vector( 0, 0, 1 ) * ( j + 1 ), null )
-                    DebugDrawLine( start, start + Vector( 0, 0, 1 ) * ( j + 1 ), color[0], color[1], color[2], false, 10.0 )
+            //         TraceLine( start, start + Vector( 0, 0, 1 ) * ( j + 1 ), null )
+            //         DebugDrawLine( start, start + Vector( 0, 0, 1 ) * ( j + 1 ), color[0], color[1], color[2], false, 10.0 )
 
-                }
+            //     }
 
-                trace.start *= Vector( 1.0, 1.0, 0.9 )
+            //     trace.start *= Vector( 1.0, 1.0, 0.9 )
 
-            })
+            // })
 
             if ( !( particle_name in VSWeather.ValidAreasForParticle ) )
                 VSWeather.ValidAreasForParticle[ particle_name ] <- [ area ]
