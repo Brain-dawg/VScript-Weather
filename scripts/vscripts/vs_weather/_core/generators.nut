@@ -2,7 +2,7 @@
  * GENERATOR FUNCTIONS                                                                                                                                *
  *                                                                                                                                                    *
  * wrapper for handling the boilerplate of using generators+thinks to defer code execution to later frames.                                           *
- * Finally, callback hell but VScript                                                                                                                 *
+ * Finally, callback hell for VScript                                                                                                                 *
  *                                                                                                                                                    *
  * We rely heavily on deferring execution to later frames so we can run very expensive code on very large maps without worrying about SQQuerySuspend. *
  * ( multiple hull/ray traces on every nav area in the map in one big loop )                                                                          *
@@ -11,37 +11,11 @@
 
 VSWeather.Generators <- {
 
-    // GeneratorChain = class( onchaincomplete = null ) {
-
-    //     generators = null
-    //     onchaincomplete = null
-
-    //     constructor( ... ) {
-
-    //         generators = vargv
-    //         onchaincomplete = onchaincomplete
-    //     }
-    // }
-
     active_generators = {}
 
     function StartGenerator( func ) { active_generators[ func ] <- true }
-    function StopGenerator( func ) { active_generators[ func ] = false }
+    function StopGenerator( func ) { active_generators[ func ] = false; }
     function ToggleGenerators() { foreach( func, state in active_generators ) { active_generators[ func ] = !state } }
-
-    // create a chain of sequential generators
-    // function CreateChain( ... ) {
-
-    //     local chain = GeneratorChain()
-    //     foreach( generator in vargv ) {
-
-    //         chain.generators.push( generator[0].acall( generator.slice( 1 ) ) )
-    //     }
-
-    //     return chain.Start()
-    // }
-
-    // function StartChain( chain ) { StartGenerator( chain.generators[0] ) }
 
     // simple Entity I/O, unrolls X number of function calls to EntFire CallScriptFunction commands 
     function DeferredUnrollSimple( num_calls, delay_mult, func, onyield = @() true ) {
@@ -57,15 +31,20 @@ VSWeather.Generators <- {
 
             EntFire( entity_name, "CallScriptFunction", func_name, delay )
 
-            if ( !( i % iters_per_frame ) )
-                yield onyield( i ), true
+            if ( !( i % iters_per_frame ) ) {
+
+                if ( onyield )
+                    onyield( i )
+
+                yield 1
+            }
         }
 
         PZI_Util.ScriptEntFireSafe( entity_name, "delete " + func_name, delay + SINGLE_TICK )
     }
 
     // generic loop, iters_per_frame number of function calls per think
-    function DeferredFor( max, iters_per_frame, func, onyield = @(i) true, oncomplete = @() true ) {
+    function DeferredFor( max, iters_per_frame, func, onyield = null, oncomplete = null ) {
 
         // start on next frame
         yield 1
@@ -74,11 +53,18 @@ VSWeather.Generators <- {
 
             func( i )
 
-            if ( !( i % iters_per_frame ) )
-                yield onyield( i ), true
+            if ( !( i % iters_per_frame ) ) {
+
+                if ( onyield )
+                    onyield( i )
+
+                yield 1
+            }
         }
 
-        return oncomplete(), true
+        if ( oncomplete )
+            oncomplete()
+        return
     }
 
     // generic for each loop, iters_per_frame number of function calls per think
@@ -89,26 +75,27 @@ VSWeather.Generators <- {
 
         local i = 0
 
-        if (!onyield)
-            onyield = @(k, v) true
-
-        if (!oncomplete)
-            oncomplete = @(iterable) true
-
         foreach( k, v in iterable ) {
 
             i++
             func( k, v )
 
-            if ( !( i % iters_per_frame ) )
-                yield onyield( k, v ), true
+            if ( !( i % iters_per_frame ) ) {
+
+                if ( onyield )
+                    onyield( k, v )
+
+                yield 1
+            }
         }
 
-        yield oncomplete( iterable ), true
+        if ( oncomplete )
+            oncomplete( iterable )
+        return
     }
 
     // non-blocking loop, will exit when the provided exit function returns false
-    function NonBlockingLoop( exit, iters_per_frame, func, onyield = @(i) true, oncomplete = @() true ) {
+    function NonBlockingLoop( exit, iters_per_frame, func, onyield = null, oncomplete = null ) {
 
         // start on next frame
         yield 1
@@ -117,14 +104,22 @@ VSWeather.Generators <- {
         while ( exit() ) {
 
             i++
-            func()
+            func( i )
 
-            if ( !( i % iters_per_frame ) )
-                yield onyield( i ), true
+            if ( !( i % iters_per_frame ) ) {
+
+                if ( onyield )
+                    onyield( i )
+
+                yield 1
+            }
 
         }
 
-        return oncomplete()
+        if ( oncomplete )
+            oncomplete()
+
+        return
     }
 }
 
@@ -132,6 +127,8 @@ function VSWeather::ThinkTable::RunGenerators() {
 
     if ( !Generators.active_generators.len() )
         return
+
+    // __DumpScope( 0, Generators.active_generators )
 
     foreach( gen, running in Generators.active_generators ) {
 
@@ -141,7 +138,11 @@ function VSWeather::ThinkTable::RunGenerators() {
             continue
         }
 
-        else if ( running )
-            resume gen
+        else if ( running ) {
+            
+            function ResumeGenerator() { if ( gen.getstatus() != "dead" ) resume gen }
+            ResumeGenerator()
+            // EntFireByHandle( self, "CallScriptFunction", "ResumeGenerator", -1, null, null )
+        }
     }
 }

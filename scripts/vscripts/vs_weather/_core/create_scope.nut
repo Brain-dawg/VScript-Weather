@@ -172,7 +172,7 @@ function ___CREATE_SCOPE( name = "", namespace = null, entity_ref = null, think_
 
                 // fix anonymous function declarations in perf counter
                 else if ( !v.getinfos().name )
-                    compilestring( format( @" local _%s = %s; function %s() { _%s() }", k, k, k, k ) ).call( ent_scope )
+                    compilestring( format( @" local _%s = %s.bindenv( this ); function %s() { _%s() }", k, k, k, k ) ).call( ent_scope )
             }
 
             // delegate variables to ent_scope for less verbose writing
