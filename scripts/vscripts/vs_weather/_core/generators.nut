@@ -140,8 +140,11 @@ function VSWeather::ThinkTable::RunGenerators() {
 
         else if ( running ) {
             
-            function ResumeGenerator() { if ( gen.getstatus() != "dead" ) resume gen }
-            ResumeGenerator()
+            if ( gen.getstatus() != "dead" )
+                resume gen
+
+            // function ResumeGenerator() { if ( gen.getstatus() != "dead" ) resume gen }
+            // ResumeGenerator()
             // EntFireByHandle( self, "CallScriptFunction", "ResumeGenerator", -1, null, null )
         }
     }
