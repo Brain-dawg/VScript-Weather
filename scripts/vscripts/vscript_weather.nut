@@ -188,7 +188,7 @@ function VSWeather::GetValidAreas() {
                         color = color_valid
 
                         // we failed a trace
-                        if ( result1 != 1.0 || result2 != 1.0 ) {
+                        if ( result1 + result2 < 2.0 ) {
                             
                             // we failed our first trace
                             // check if subsequent traces enter playable space
