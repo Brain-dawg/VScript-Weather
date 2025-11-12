@@ -1,34 +1,88 @@
 // This is where you configure your weather system
 VSWeather.CONFIG <- {
 
-    // maximum number of info_particle_systems to spawn
+    /******************
+     *                *
+     * BASIC SETTINGS *
+     *                *
+     ******************/
+
+    /****************************************************
+     * maximum number of info_particle_systems to spawn *
+     ****************************************************/
     MAX_WEATHER_SYSTEMS = 64
+
+    /*******************************************************************************************
+     * Ignore prop_static/prop_dynamic/anything using a studiomdl                              *
+     * This is so small rocks/trees/etc don't invalidate potential weather system locations    *
+     * However, if you have e.g. a prop_static shack/entire building, this will cause problems *
+     *******************************************************************************************/
+    IGNORE_PROPS = true
 
     WeatherSystems = {
 
-        // define particle systems by name here
+        /****************************************
+         * define particle systems by name here *
+         ****************************************/
         env_rain_002_256 = {
 
-            // "safe" radius of this effect before it will clip into surrounding geometry
+            /******************************************************************************
+             * "safe" radius of this effect before it will clip into surrounding geometry *
+             ******************************************************************************/
             radius = 300
 
-            // distance from the particle system origin -> the point where the particle stops
+            /**********************************************************************************
+             * distance from the particle system origin -> the point where the particle stops *
+             **********************************************************************************/
             travel_distance = 650
 
-            // entity keyvalues passed to the info_particle_system entity
-            // Create an info_particle_system in hammer and disable SmartEdit to see valid keyvalues.
-            // or see VDC page: https://developer.valvesoftware.com/wiki/Info_particle_system
+            /**********************************************************************************
+             * entity keyvalues passed to the info_particle_system entity                     *
+             * for valid keyvalues, create one in hammer and disable SmartEdit.               *
+             * or see VDC page: https://developer.valvesoftware.com/wiki/Info_particle_system *
+             **********************************************************************************/
             keyvalues = {
 
-                // if this is not set, targetname will be set to "__vs_weather_<particle name>_<area id>".  area id is the nav area ID associated with this effect
+                /************************************************************
+                 * if this is not set, targetname will be set to:           *
+                 * "__vs_weather_<particle name>_<area id>".                *
+                 * <area id> is the nav area ID associated with this effect *
+                 ************************************************************/
                 // targetname      = "my_rain_test"
 
-                // start the particle system active
+                /************************************
+                 * start the particle system active *
+                 ************************************/
                 start_active    = true
 
-                // disabled for testing purposes
-                flag_as_weather = false
+                /****************************************************************************
+                 * Many configs set tf_particles_disable_weather 0 for performance reasons. *
+                 * NOTE: weirdly the example env_rain_002_256 will not be affected by this? *
+                 ****************************************************************************/
+                flag_as_weather = true
             }
         }
+    }
+
+    /***************************
+     *                         *
+     * ADVANCED SETTINGS BELOW *
+     *                         *
+     ***************************/
+
+    /******************************************************************
+     * Per-frame loop settings for low power performance tuning       *
+     * If you're having issues hitting SQQuerySuspend                 *
+     * or client crashes due to the DebugDraw spam                    *
+     * lower these values until it stops                              *
+     *                                                                *
+     * These are MAXIMUM settings.                                    *
+     * If MAX_WEATHER_SYSTEMS = 30, SPAWN_PARTICLES > 30 does nothing *
+     ******************************************************************/
+    ITERS_PER_FRAME = {
+
+        TRACE_JOB_INIT  = 200 // number of trace jobs to initialize per frame
+        TRACE_JOB_RUN   = 150 // number of TraceLine/TraceLineEx/TraceHull function calls per frame (and some other expensive things)
+        SPAWN_PARTICLES = 50  // number of particle systems to spawn per frame
     }
 }

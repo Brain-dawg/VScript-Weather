@@ -17,8 +17,46 @@ VSWeather.Generators <- {
     function StopGenerator( func ) { active_generators[ func ] = false; }
     function ToggleGenerators() { foreach( func, state in active_generators ) { active_generators[ func ] = !state } }
 
+    function GeneratorChain( steps ) {
+
+        local step_names = steps.keys();
+
+        function executeStep(i) {
+
+            printl( "executeStep called with i=" + i + ", step_names.len()=" + step_names.len() )
+
+            if ( !(i in step_names) ) {
+                printl( "Chain complete!" )
+                return  // Chain complete
+            }
+
+            local step_name = step_names[i];
+            local step_config = steps[step_name];
+            printl( "Executing step: " + step_name )
+            // Extract parameters from the step configuration
+            local generator_factory = step_config[0];  // Function that creates the generator
+            local custom_oncomplete = step_config.len() ? step_config[step_config.len()-1] : null;
+
+            // Create the chaining oncomplete function
+            local function chainComplete( ... ) {
+                printl( "Step '" + step_name + "' completed!" )
+                if ( custom_oncomplete )
+                    custom_oncomplete.acall( [this].extend(vargv) );
+                executeStep( i + 1 );  // Continue to next step
+            }
+
+            // Create and start the generator with the chaining complete callback
+            local generator = generator_factory( chainComplete );
+            printl( "Started generator: " + generator )
+
+            StartGenerator( generator );
+        }
+
+        executeStep( 0 );
+    }
+
     // simple Entity I/O, unrolls X number of function calls to EntFire CallScriptFunction commands 
-    function DeferredUnrollSimple( num_calls, delay_mult, func, onyield = @() true ) {
+    function DeferredUnrollSimple( num_calls, delay_mult, func, onyield = null, oncomplete = null ) {
 
         local func_name = func.getinfos().name || UniqueString( "Generator_DeferredUnrollSimple" )
         VSWeather[ func_name ] <- func
@@ -34,7 +72,7 @@ VSWeather.Generators <- {
             if ( !( i % iters_per_frame ) ) {
 
                 if ( onyield )
-                    onyield( i )
+                    onyield()
 
                 yield 1
             }
@@ -56,7 +94,7 @@ VSWeather.Generators <- {
             if ( !( i % iters_per_frame ) ) {
 
                 if ( onyield )
-                    onyield( i )
+                    onyield()
 
                 yield 1
             }
@@ -104,12 +142,12 @@ VSWeather.Generators <- {
         while ( exit() ) {
 
             i++
-            func( i )
+            func()
 
             if ( !( i % iters_per_frame ) ) {
 
                 if ( onyield )
-                    onyield( i )
+                    onyield()
 
                 yield 1
             }
