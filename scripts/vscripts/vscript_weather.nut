@@ -17,7 +17,9 @@ DebugDrawClear()
 VSWeather.AllAreas   <- {}
 VSWeather.ValidAreasForParticle <- {}
 VSWeather.Events     <- {}
-VSWeather.areas_collected <- false
+VSWeather.weather_complete <- false
+VSWeather.weather_editing  <- false
+VSWeather.particle_count <- 0
 
 function VSWeather::InitNav() {
 
@@ -40,9 +42,9 @@ function VSWeather::InitNav() {
                 return Generators.DeferredForEach(
                     AllAreas,
                     CONFIG.ITERS_PER_FRAME.TRACE_JOB_INIT,
-                    _InitializeSpokeTrace, // initialize spoke trace for each area
-                    _ValidAreasYield, // yields for each iters_per_frame
-                    oncomplete                     // completion callback (REQUIRED for chaining)
+                    InitializeSpokeTrace, // initialize spoke trace for each area
+                    ValidAreasYield, // yields for each iters_per_frame
+                    oncomplete       // completion callback (REQUIRED for chaining)
                 )
             }
 
@@ -51,9 +53,9 @@ function VSWeather::InitNav() {
 
             function(oncomplete) {
 
-                return _RunSpokeTraceLoop( oncomplete )
+                return RunSpokeTraceLoop( oncomplete )
             },
-            @() Generators.StartGenerator( Generators.DeferredForEach( _InitializeSpawnParticles(), CONFIG.ITERS_PER_FRAME.SPAWN_PARTICLES, _SpawnParticles ) )
+            @() Generators.StartGenerator( Generators.DeferredForEach( InitializeSpawnParticles(), CONFIG.ITERS_PER_FRAME.SPAWN_PARTICLES, SpawnParticles, null, @(_) weather_complete = true ) )
         ]
         // SpawnParticles = [
 
@@ -72,7 +74,7 @@ function VSWeather::InitNav() {
 }
 
 // Initialize spoke trace data for each area
-function VSWeather::_InitializeSpokeTrace( area_name, area ) {
+function VSWeather::InitializeSpokeTrace( area_name, area ) {
 
     printl( "Initializing spoke trace for area: " + area_name )
 
@@ -91,7 +93,7 @@ VSWeather.AreasToTrace <- []
 VSWeather.TraceState <- {}
 
 // Run the spoke trace loop using NonBlockingLoop
-function VSWeather::_RunSpokeTraceLoop( oncomplete ) {
+function VSWeather::RunSpokeTraceLoop( oncomplete ) {
 
     printl( "Starting spoke trace loop" )
 
@@ -143,7 +145,7 @@ function VSWeather::_RunSpokeTraceLoop( oncomplete ) {
 
         local result = current_job_index in trace_jobs
         if ( !result )
-            printl( "SpokeTrace loop completed! Moving to next step..." )
+            print( "\n\nDone tracing! Spawning particles...\n\n" )
         return result
     }
 
@@ -236,7 +238,8 @@ function VSWeather::_RunSpokeTraceLoop( oncomplete ) {
 
                 }
 
-                DebugDrawLine( job.trace_start, spoke_end, job.color[0], job.color[1], job.color[2], false, job.completed ? 10.0 : 0.1 )
+                if ( job.color[0] )
+                    DebugDrawLine( job.trace_start, spoke_end, job.color[0], job.color[1], job.color[2], false, job.completed ? 30.0 : 0.5 )
             }
 
             // Step the start position down for next trace
@@ -268,13 +271,13 @@ function VSWeather::_RunSpokeTraceLoop( oncomplete ) {
 
 // VSWeather.Generators.NonBlockingLoop(  @() tracing, 1023, _SpokeTrace, null, @() tracing = false )
 
-function VSWeather::_ValidAreasYield( area_name, area ) {
+function VSWeather::ValidAreasYield( area_name, area ) {
 
     foreach ( particle_name, particle_info in ValidAreasForParticle )
         printf( "[%s] Valid areas: (%d / %d)\n", particle_name, particle_info.len(), AllAreas.len() )
 }
 
-function VSWeather::_InitializeSpawnParticles() {
+function VSWeather::InitializeSpawnParticles() {
 
     // Collect all valid areas from all particle types
     local all_valid_areas = {}
@@ -288,7 +291,7 @@ function VSWeather::_InitializeSpawnParticles() {
     return all_valid_areas
 }
 
-function VSWeather::_SpawnParticles( area, info ) {
+function VSWeather::SpawnParticles( area, info ) {
 
     local particle_name = info.particle_name
     local particle_info = info.info
@@ -335,27 +338,32 @@ function VSWeather::_SpawnParticles( area, info ) {
         return
     }
 
+    if ( particle_count >= CONFIG.MAX_WEATHER_SYSTEMS )
+        return
+
+    particle_count++
+
     local ent = SpawnEntityFromTable( "info_particle_system", kvs )
 
     if ( ent.GetOrigin() != final_origin )
         ent.SetAbsOrigin( final_origin )
 
-    DebugDrawBox( final_origin, Vector( -10, -10, -10 ), Vector( 10, 10, 10 ), color_small[0], color_small[1], color_small[2], 0, 30.0 )
-    DebugDrawLine( origin_pre_offset, final_origin, color_small[0], color_small[1], color_small[2], false, 30.0 )
+    DebugDrawBox( final_origin, Vector( -10, -10, -10 ), Vector( 10, 10, 10 ), color_small[0], color_small[1], color_small[2], 0, 60.0 )
+    DebugDrawLine( origin_pre_offset, final_origin, color_small[0], color_small[1], color_small[2], false, 60.0 )
 
     // printl( "Spawned particle system: " + particle_name + " at " + final_origin.ToKVString() )
 }
 
-// function VSWeather::Events::OnGameEvent_player_say( params ) {
+function VSWeather::Events::OnGameEvent_player_say( params ) {
 
-//     if ( params.text == "auto_weather" ) {
+    if ( params.text == ".weather_edit" ) {
 
-//         if ( !VSWeather.areas_collected ) {
+        if ( !VSWeather.weather_complete ) {
 
-//             DebugLog.LOG_PRINT( "Cannot run auto-weather yet, waiting for areas to be collected...", "INFO" )
-//             return
-//         }
-//     }
-// }
+            DebugLog.LOG_PRINT( "Weather is not complete yet.", "INFO" )
+            return
+        }
+    }
+}
 
 VSWeather.InitNav()

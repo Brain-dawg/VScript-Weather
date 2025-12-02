@@ -6,11 +6,14 @@ VSWeather.CONFIG <- {
      * BASIC SETTINGS *
      *                *
      ******************/
-
-    /****************************************************
-     * maximum number of info_particle_systems to spawn *
-     ****************************************************/
-    MAX_WEATHER_SYSTEMS = 64
+    /********************************************************************************
+     * maximum number of info_particle_systems to spawn                             *
+     *                                                                              *
+     * This is not the absolute number of spawned particles                         *
+     * If detected valid areas < MAX_WEATHER_SYSTEMS,                               *
+     * the number of spawned particles will be reduced to the number of valid areas *
+     ********************************************************************************/
+    MAX_WEATHER_SYSTEMS = 256
 
     /*******************************************************************************************
      * Ignore prop_static/prop_dynamic/anything using a studiomdl                              *
@@ -81,8 +84,8 @@ VSWeather.CONFIG <- {
      ******************************************************************/
     ITERS_PER_FRAME = {
 
-        TRACE_JOB_INIT  = 200 // number of trace jobs to initialize per frame
-        TRACE_JOB_RUN   = 150 // number of TraceLine/TraceLineEx/TraceHull function calls per frame (and some other expensive things)
+        TRACE_JOB_INIT  = 100 // number of trace jobs to initialize per frame
+        TRACE_JOB_RUN   = 50 // number of TraceLine/TraceLineEx/TraceHull function calls per frame (and some other expensive things)
         SPAWN_PARTICLES = 50  // number of particle systems to spawn per frame
     }
 }
