@@ -22,7 +22,7 @@
  *        Optional root table reference to the entity.
  *
  * @param {string|function} think_func
- *        Set a a think function for this entity/scope, depending on argument type:
+ *        Set a think function for this entity/scope, depending on argument type:
  *        - string: creates a new think function that iterates over an internal table named "ThinkTable", allowing for multiple concurrent thinks that can be added/removed dynamically.
  *        - function: Sets the think function directly, useful for "permanent" thinks where you don't need to dynamically add/remove multiple concurrent thinks.
  *
@@ -34,7 +34,8 @@
  *        ... If you use a non-preserved entity, this namespace will only exist for the duration of the current round, and will be deleted when the underlying entity is killed...
  *        ... Search "*s_PreserveEnts[]" in the SDK codebase for a list of preserved entity classnames.
  * 
- *        WARNING: If you are overriding this to "move_rope" or "keyframe_rope" to make it a "real" preserved entity, know that some servers will kill these entities indiscriminately to save edicts...
+ *        WARNING: If you are overriding this to "move_rope" or "keyframe_rope" to make it a "real" preserved entity 
+ *        ... know that some servers will kill these entities indiscriminately to save edicts...
  *        ... we use "entity_saucer" because it is a more obscure entity that server owners will likely forget about and not kill it.
  * 
  *        WARNING: This is not a general purpose entity spawner! the underlying entity only exists as a script scope bucket to dump our code into.
@@ -225,6 +226,8 @@ function ___CREATE_SCOPE( name = "", namespace = null, entity_ref = null, think_
         // String passed, set up think table and assume we're defining the actual function later
 		ent_scope.ThinkTable <- {}
 
+		// we use compilestring here instead of ent_scope[ think_func ] <- function() { ... } for easier perf testing
+		// the former syntax will always print <lambda or free-run script> in console for the func name.
 		compilestring( format( "function %s() { foreach( func in ThinkTable ) func.call( this ); return -1 }", think_func ) ).call( ent_scope )
 
 		AddThinkToEnt( ent, think_func )

@@ -8,6 +8,7 @@ Include( "create_scope" )
 // dummy entity to scope everything to
 ___CREATE_SCOPE( "__vs_weather", "VSWeather", "VSWeatherEntity", "VSWeatherThink" )
 
+Include( "debuglog")
 Include( "util" )
 Include( "generators" )
 Include( "../CONFIG.nut" )
@@ -16,7 +17,6 @@ DebugDrawClear()
 
 VSWeather.AllAreas   <- {}
 VSWeather.ValidAreasForParticle <- {}
-VSWeather.Events     <- {}
 VSWeather.weather_complete <- false
 VSWeather.weather_editing  <- false
 VSWeather.particle_count <- 0
@@ -31,52 +31,12 @@ function VSWeather::InitNav() {
     foreach( particle_name, cfg in CONFIG.WeatherSystems ) {
         ValidAreasForParticle[ particle_name ] <- {}
     }
-
-    // Start the generator chain
-    Generators.GeneratorChain({
-
-        GetValidAreas = [
-
-            function(oncomplete) {
-
-                return Generators.DeferredForEach(
-                    AllAreas,
-                    CONFIG.ITERS_PER_FRAME.TRACE_JOB_INIT,
-                    InitializeSpokeTrace, // initialize spoke trace for each area
-                    ValidAreasYield, // yields for each iters_per_frame
-                    oncomplete       // completion callback (REQUIRED for chaining)
-                )
-            }
-
-        ]
-        SpokeTrace = [
-
-            function(oncomplete) {
-
-                return RunSpokeTraceLoop( oncomplete )
-            },
-            @() Generators.StartGenerator( Generators.DeferredForEach( InitializeSpawnParticles(), CONFIG.ITERS_PER_FRAME.SPAWN_PARTICLES, SpawnParticles, null, @(_) weather_complete = true ) )
-        ]
-        // SpawnParticles = [
-
-        //     function(oncomplete) {
-
-        //         return VSWeather.Generators.DeferredForEach(
-        //             VSWeather._InitializeSpawnParticles(),
-        //             100,
-        //             VSWeather._SpawnParticles,
-        //             null,        // no yield callback
-        //             oncomplete   // completion callback (REQUIRED for chaining)
-        //         )
-        //     }
-        // ]
-    })
 }
 
 // Initialize spoke trace data for each area
 function VSWeather::InitializeSpokeTrace( area_name, area ) {
 
-    printl( "Initializing spoke trace for area: " + area_name )
+    // printl( "Initializing spoke trace for area: " + area_name )
 
     // Process each particle type and initialize data structures
     foreach( particle_name, particle_info in ValidAreasForParticle ) {
@@ -354,16 +314,97 @@ function VSWeather::SpawnParticles( area, info ) {
     // printl( "Spawned particle system: " + particle_name + " at " + final_origin.ToKVString() )
 }
 
+// chat commands are all prefixed with ".w"
+// e.g. "edit" is ".wedit"
+VSWeather.ChatCommands <- {
+
+    function trace( _ ) { Start() }
+    function start( _ ) { Start() }
+
+    function edit( params ) {
+
+    }
+
+    function save( params ) {
+
+    }
+}.setdelegate( VSWeather )
+
+// Start the generator chain
+function VSWeather::Start() {
+
+    local i = 0
+    for ( local ent = Entities.First(); ent; ent = Entities.Next( ent ) )
+        i++
+
+    if ( i + CONFIG.MAX_WEATHER_SYSTEMS > MAX_EDICTS )
+        return DebugLog.LOG_PRINT( format( "Not enough edicts to spawn particles.  %d + %d > %d", i, CONFIG.MAX_WEATHER_SYSTEMS, MAX_EDICTS ), "ERROR" )
+    
+    Generators.GeneratorChain({
+
+        GetValidAreas = [
+
+            function(oncomplete) {
+
+                return Generators.DeferredForEach(
+                    AllAreas,
+                    CONFIG.ITERS_PER_FRAME.TRACE_JOB_INIT,
+                    InitializeSpokeTrace, // initialize spoke trace for each area
+                    ValidAreasYield, // yields for each iters_per_frame
+                    oncomplete       // completion callback (REQUIRED for chaining)
+                )
+            }
+
+        ]
+        SpokeTrace = [
+
+            function(oncomplete) {
+
+                return RunSpokeTraceLoop( oncomplete )
+            },
+            @() Generators.StartGenerator( Generators.DeferredForEach( InitializeSpawnParticles(), CONFIG.ITERS_PER_FRAME.SPAWN_PARTICLES, SpawnParticles, null, @(_) weather_complete = true ) )
+        ]
+        // SpawnParticles = [
+
+        //     function(oncomplete) {
+
+        //         return VSWeather.Generators.DeferredForEach(
+        //             VSWeather._InitializeSpawnParticles(),
+        //             100,
+        //             VSWeather._SpawnParticles,
+        //             null,        // no yield callback
+        //             oncomplete   // completion callback (REQUIRED for chaining)
+        //         )
+        //     }
+        // ]
+    })
+}
+
+VSWeather.Events <- {}.setdelegate( VSWeather )
 function VSWeather::Events::OnGameEvent_player_say( params ) {
 
-    if ( params.text == ".weather_edit" ) {
+    local text = params.text
 
-        if ( !VSWeather.weather_complete ) {
+    if ( text[0] != '.' || !(1 in text) || text[1] != 'w' )
+        return
 
-            DebugLog.LOG_PRINT( "Weather is not complete yet.", "INFO" )
-            return
-        }
+    local cmd = text.slice( 2 )
+
+    if ( !weather_complete && cmd != "start" && cmd != "trace" ) {
+
+        DebugLog.LOG_PRINT( "Weather is not complete yet.", "INFO" )
+        return
     }
+
+    else if ( !(cmd in ChatCommands) ) {
+
+        DebugLog.LOG_PRINT( "Unknown command: " + text, "INFO" )
+        return
+    }
+
+    ChatCommands[ cmd ]( params )
 }
+
+__CollectGameEventCallbacks( VSWeather.Events )
 
 VSWeather.InitNav()

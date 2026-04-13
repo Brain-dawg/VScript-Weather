@@ -6,7 +6,11 @@ if ( "LOG_DEBUG" in ROOT && LOG_DEBUG.find( "[VS WEATHER") )
 ::ROOT  <- getroottable()
 ::CONST <- getconsttable()
 
+// I do not remember why this is here,
+// CONST.key <- value is already evaluated as expected iirc.
+// it does not hurt anything, so it will stay for now.
 CONST.setdelegate( { _newslot = @( k, v ) compilestring( "const " + k + "=" + ( typeof v == "string" ? ( "\"" + v + "\"" ) : v ) )() } )
+
 CONST.MAX_CLIENTS <- MaxClients().tointeger()
 CONST.MAPNAME <- GetMapName()
 

@@ -13,9 +13,12 @@ VSWeather.DebugLog <- {
             return
 
         local log_const = "LOG_" + severity
+
         if ( log_const in CONST )
             ClientPrint( null, 3, CONST[log_const] + message )
 
-        printl( "VS WEATHER LOG: " + message )
+        Assert( ( severity != "ERROR" && severity != "FATAL" ), message )
+
+        printl( "[VS WEATHER] " + message )
     }
 }
