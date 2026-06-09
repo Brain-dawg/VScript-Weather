@@ -1,7 +1,7 @@
 /******************************************************************************************************************************************************
  * GENERATOR FUNCTIONS                                                                                                                                *
  *                                                                                                                                                    *
- * wrapper for handling the boilerplate of using generators+thinks to defer code execution to later frames.                                           *
+ * standalone library for using generators+thinks to defer code execution to later frames.                                                            *
  * Finally, callback hell for VScript                                                                                                                 *
  *                                                                                                                                                    *
  * We rely heavily on deferring execution to later frames so we can run very expensive code on very large maps without worrying about SQQuerySuspend. *
@@ -23,23 +23,24 @@ VSWeather.Generators <- {
 
         function executeStep(i) {
 
-            printl( "executeStep called with i=" + i + ", step_names.len()=" + step_names.len() )
+            VSWeather.DebugLog.LOG_PRINT( "executeStep called with i=" + i + ", step_names.len()=" + step_names.len(), "DEBUG" )
 
             if ( !(i in step_names) ) {
-                printl( "Chain complete!" )
+                VSWeather.DebugLog.LOG_PRINT( "Generator chain complete!", "DEBUG" )
                 return  // Chain complete
             }
 
             local step_name = step_names[i];
             local step_config = steps[step_name];
-            printl( "Executing step: " + step_name )
+            VSWeather.DebugLog.LOG_PRINT( "Executing generator step: " + step_name, "DEBUG" )
             // Extract parameters from the step configuration
             local generator_factory = step_config[0];  // Function that creates the generator
             local custom_oncomplete = step_config.len() ? step_config[step_config.len()-1] : null;
 
             // Create the chaining oncomplete function
             local function chainComplete( ... ) {
-                printl( "Step '" + step_name + "' completed!" )
+
+               VSWeather.DebugLog.LOG_PRINT( "Generator step '" + step_name + "' completed!", "DEBUG" )
                 if ( custom_oncomplete )
                     custom_oncomplete.acall( [this].extend(vargv) );
                 executeStep( i + 1 );  // Continue to next step
@@ -47,7 +48,7 @@ VSWeather.Generators <- {
 
             // Create and start the generator with the chaining complete callback
             local generator = generator_factory( chainComplete );
-            printl( "Started generator: " + generator )
+            VSWeather.DebugLog.LOG_PRINT( "Started generator: " + generator, "DEBUG" )
 
             StartGenerator( generator );
         }
@@ -65,20 +66,27 @@ VSWeather.Generators <- {
         yield 1
 
         local entity_name = "__vs_weather"
+
         for ( local i = 0, delay = SINGLE_TICK; i < num_calls; delay += (SINGLE_TICK * delay_mult), i++ ) {
 
             EntFire( entity_name, "CallScriptFunction", func_name, delay )
 
             if ( !( i % iters_per_frame ) ) {
 
-                if ( onyield )
-                    onyield()
+                if ( onyield ) onyield()
 
                 yield 1
             }
         }
 
-        PZI_Util.ScriptEntFireSafe( entity_name, "delete " + func_name, delay + SINGLE_TICK )
+        local func_delete = "delete " + func_name
+        EntFire( entity_name, "RunScriptCode", func_delete, delay + SINGLE_TICK )
+
+        local tmp = CreateByClassname( "logic_autosave" )
+        SetPropString( tmp, STRING_NETPROP_NAME, func_delete )
+        ::DispatchSpawn( tmp )
+        SetPropString( tmp, STRING_NETPROP_PURGESTRINGS, func_delete )
+        EntFire( func_delete, "Kill" )
     }
 
     // generic loop, iters_per_frame number of function calls per think
@@ -93,15 +101,13 @@ VSWeather.Generators <- {
 
             if ( !( i % iters_per_frame ) ) {
 
-                if ( onyield )
-                    onyield()
+                if ( onyield ) onyield()
 
                 yield 1
             }
         }
 
-        if ( oncomplete )
-            oncomplete()
+        if ( oncomplete ) oncomplete()
         return
     }
 
@@ -120,15 +126,13 @@ VSWeather.Generators <- {
 
             if ( !( i % iters_per_frame ) ) {
 
-                if ( onyield )
-                    onyield( k, v )
+                if ( onyield ) onyield( k, v )
 
                 yield 1
             }
         }
 
-        if ( oncomplete )
-            oncomplete( iterable )
+        if ( oncomplete ) oncomplete( iterable )
         return
     }
 
@@ -146,17 +150,14 @@ VSWeather.Generators <- {
 
             if ( !( i % iters_per_frame ) ) {
 
-                if ( onyield )
-                    onyield()
+                if ( onyield ) onyield()
 
                 yield 1
             }
 
         }
 
-        if ( oncomplete )
-            oncomplete()
-
+        if ( oncomplete ) oncomplete()
         return
     }
 }
@@ -178,8 +179,7 @@ function VSWeather::ThinkTable::RunGenerators() {
 
         else if ( running ) {
             
-            if ( gen.getstatus() != "dead" )
-                resume gen
+            if ( gen.getstatus() != "dead" ) resume gen
 
             // function ResumeGenerator() { if ( gen.getstatus() != "dead" ) resume gen }
             // ResumeGenerator()

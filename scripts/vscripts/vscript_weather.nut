@@ -14,27 +14,46 @@ Include( "generators" )
 Include( "../CONFIG.nut" )
 
 DebugDrawClear()
-
+// VSWeather.AreasToTrace <- []
+// VSWeather.TraceState <- {}
 VSWeather.AllAreas   <- {}
-VSWeather.ValidAreasForParticle <- {}
+VSWeather.particle_count <- 0
 VSWeather.weather_complete <- false
 VSWeather.weather_editing  <- false
-VSWeather.particle_count <- 0
+VSWeather.ValidAreasForParticle <- {}
 
 function VSWeather::InitNav() {
 
     GetAllAreas( AllAreas )
 
-    Assert( AllAreas.len(), "MAP HAS NO NAVMESH! run nav_generate before running this script" )
+    local areas_len = AllAreas.len()
+
+    Assert( areas_len, "MAP HAS NO NAVMESH! run nav_generate before running this script" )
 
     // Initialize ValidAreasForParticle for each particle type
-    foreach( particle_name, cfg in CONFIG.WeatherSystems ) {
+    foreach( particle_name, cfg in CONFIG.WeatherSystems )
         ValidAreasForParticle[ particle_name ] <- {}
+
+    local newareas = array( areas_len )
+    local rnd = RandomInt( 0, areas_len - 1 )
+
+    // shuffle the areas
+    // probably a better way to do this
+    foreach ( area in AllAreas ) {
+
+        while ( newareas[ rnd ] ) {
+
+            rnd = RandomInt( 0, areas_len - 1 )
+        }
+
+        newareas[ rnd ] = area
     }
+
+    AllAreas = newareas
 }
 
 // Initialize spoke trace data for each area
-function VSWeather::InitializeSpokeTrace( area_name, area ) {
+function VSWeather::InitializeSpokeTrace( i, area ) {
 
     // printl( "Initializing spoke trace for area: " + area_name )
 
@@ -45,12 +64,6 @@ function VSWeather::InitializeSpokeTrace( area_name, area ) {
             particle_info[ area ] <- { origin_override = Vector() }
     }
 }
-
-// Store areas that need spoke tracing
-VSWeather.AreasToTrace <- []
-
-// Store tracing state
-VSWeather.TraceState <- {}
 
 // Run the spoke trace loop using NonBlockingLoop
 function VSWeather::RunSpokeTraceLoop( oncomplete ) {
@@ -199,7 +212,7 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
                 }
 
                 if ( job.color[0] )
-                    DebugDrawLine( job.trace_start, spoke_end, job.color[0], job.color[1], job.color[2], false, job.completed ? 30.0 : 0.5 )
+                    DebugDrawLine( job.trace_start, spoke_end, job.color[0], job.color[1], job.color[2], false, job.completed ? 30.0 : 0.1 )
             }
 
             // Step the start position down for next trace
@@ -231,7 +244,7 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
 
 // VSWeather.Generators.NonBlockingLoop(  @() tracing, 1023, _SpokeTrace, null, @() tracing = false )
 
-function VSWeather::ValidAreasYield( area_name, area ) {
+function VSWeather::ValidAreasYield( i, area ) {
 
     foreach ( particle_name, particle_info in ValidAreasForParticle )
         printf( "[%s] Valid areas: (%d / %d)\n", particle_name, particle_info.len(), AllAreas.len() )
@@ -281,6 +294,9 @@ function VSWeather::SpawnParticles( area, info ) {
     else
         kvs.targetname = kvs.targetname + "_" + area.GetID()
 
+    // "vscripts" kv w/ invalid filename will still set up the script scope on spawn
+    // without needing to call .ValidateScriptScope() after
+    // cannot be an empty string or null, just use a space
     if ( !("vscripts" in kvs) )
         kvs.vscripts <- " "
 
@@ -294,7 +310,7 @@ function VSWeather::SpawnParticles( area, info ) {
     // Check for nearby particles to avoid duplicates
     local nearby_particle = FindByClassnameNearest( "info_particle_system", kvs.origin, cfg.radius )
     if ( nearby_particle && GetPropString( nearby_particle, "m_iszEffectName" ) == particle_name ) {
-        // printl( "Skipping duplicate particle at " + kvs.origin.ToKVString() )
+        DebugLog.LOG_PRINT( "Skipping duplicate particle at " + kvs.origin.ToKVString(), "DEBUG" )
         return
     }
 
@@ -311,24 +327,8 @@ function VSWeather::SpawnParticles( area, info ) {
     DebugDrawBox( final_origin, Vector( -10, -10, -10 ), Vector( 10, 10, 10 ), color_small[0], color_small[1], color_small[2], 0, 60.0 )
     DebugDrawLine( origin_pre_offset, final_origin, color_small[0], color_small[1], color_small[2], false, 60.0 )
 
-    // printl( "Spawned particle system: " + particle_name + " at " + final_origin.ToKVString() )
+    DebugLog.LOG_PRINT( "Spawned particle system: " + particle_name + " at " + final_origin.ToKVString(), "DEBUG" )
 }
-
-// chat commands are all prefixed with ".w"
-// e.g. "edit" is ".wedit"
-VSWeather.ChatCommands <- {
-
-    function trace( _ ) { Start() }
-    function start( _ ) { Start() }
-
-    function edit( params ) {
-
-    }
-
-    function save( params ) {
-
-    }
-}.setdelegate( VSWeather )
 
 // Start the generator chain
 function VSWeather::Start() {
@@ -340,6 +340,8 @@ function VSWeather::Start() {
     if ( i + CONFIG.MAX_WEATHER_SYSTEMS > MAX_EDICTS )
         return DebugLog.LOG_PRINT( format( "Not enough edicts to spawn particles.  %d + %d > %d", i, CONFIG.MAX_WEATHER_SYSTEMS, MAX_EDICTS ), "ERROR" )
     
+    weather_complete = false
+
     Generators.GeneratorChain({
 
         GetValidAreas = [
@@ -380,6 +382,25 @@ function VSWeather::Start() {
     })
 }
 
+// chat commands are all prefixed with ".w"
+// e.g. "edit" is ".wedit"
+VSWeather.ChatCommands <- {
+
+    function trace( _ ) { Start() }
+    function start( _ ) { Start() }
+
+    function edit( params ) {
+
+    }
+
+    function save( params ) {
+
+    }
+}.setdelegate( VSWeather )
+
+if ( "Events" in VSWeather )
+    delete VSWeather.Events
+
 VSWeather.Events <- {}.setdelegate( VSWeather )
 function VSWeather::Events::OnGameEvent_player_say( params ) {
 
@@ -404,7 +425,6 @@ function VSWeather::Events::OnGameEvent_player_say( params ) {
 
     ChatCommands[ cmd ]( params )
 }
-
 __CollectGameEventCallbacks( VSWeather.Events )
 
 VSWeather.InitNav()

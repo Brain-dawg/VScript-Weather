@@ -13,7 +13,7 @@ VSWeather.CONFIG <- {
      * If detected valid areas < MAX_WEATHER_SYSTEMS,                               *
      * the number of spawned particles will be reduced to the number of valid areas *
      ********************************************************************************/
-    MAX_WEATHER_SYSTEMS = 256
+    MAX_WEATHER_SYSTEMS = 50
 
     /*******************************************************************************************
      * Ignore prop_static/prop_dynamic/anything using a studiomdl                              *
@@ -27,53 +27,54 @@ VSWeather.CONFIG <- {
         /****************************************
          * define particle systems by name here *
          ****************************************/
-        // env_sandstorm_002_angry = {
-
-        //     /******************************************************************************
-        //      * "safe" radius of this effect before it will clip into surrounding geometry *
-        //      ******************************************************************************/
-        //     radius = 300
-
-        //     /**********************************************************************************
-        //      * distance from the particle system origin -> the point where the particle stops *
-        //      **********************************************************************************/
-        //     travel_distance = 650
-
-        //     /**********************************************************************************
-        //      * entity keyvalues passed to the info_particle_system entity                     *
-        //      * for valid keyvalues, create one in hammer and disable SmartEdit.               *
-        //      * or see VDC page: https://developer.valvesoftware.com/wiki/Info_particle_system *
-        //      **********************************************************************************/
-        //     keyvalues = {
-
-        //         /************************************************************
-        //          * if this is not set, targetname will be set to:           *
-        //          * "__vs_weather_<particle name>_<area id>".                *
-        //          * <area id> is the nav area ID associated with this effect *
-        //          ************************************************************/
-        //         // targetname      = "my_rain_test"
-
-        //         /************************************
-        //          * start the particle system active *
-        //          ************************************/
-        //         start_active    = true
-
-        //         /****************************************************************************
-        //          * Many configs set tf_particles_disable_weather 0 for performance reasons. *
-        //          * NOTE: weirdly the example env_rain_002_256 will not be affected by this? *
-        //          ****************************************************************************/
-        //         flag_as_weather = true
-        //     }
-        // }
         env_rain_002_256 = {
 
+            /******************************************************************************
+             * "safe" radius of this effect before it will clip into surrounding geometry *
+             ******************************************************************************/
             radius = 300
+
+            /**********************************************************************************
+             * distance from the particle system origin -> the point where the particle stops *
+             **********************************************************************************/
             travel_distance = 650
+
+            /**********************************************************************************
+             * entity keyvalues passed to the info_particle_system entity                     *
+             * for valid keyvalues, create one in hammer and disable SmartEdit.               *
+             * or see VDC page: https://developer.valvesoftware.com/wiki/Info_particle_system *
+             **********************************************************************************/
             keyvalues = {
-                start_active = true
+
+                /************************************************************
+                 * if this is not set, targetname will be set to:           *
+                 * "__vs_weather_<particle name>_<area id>".                *
+                 * <area id> is the nav area ID associated with this effect *
+                 ************************************************************/
+                // targetname      = "my_rain_test"
+
+                /************************************
+                 * start the particle system active *
+                 ************************************/
+                start_active    = true
+
+                /****************************************************************************
+                 * Many configs set tf_particles_disable_weather 0 for performance reasons. *
+                 * NOTE: weirdly the example env_rain_002_256 will not be affected by this? *
+                 ****************************************************************************/
                 flag_as_weather = true
             }
         }
+        // env_sandstorm_002_angry = {
+
+        //     radius = 300
+        //     travel_distance = 650
+        //     keyvalues = {
+        //         angles          = QAngle( 45, 180, 0 )
+        //         start_active    = true
+        //         flag_as_weather = true
+        //     }
+        // }
     }
 
     /***************************
@@ -94,7 +95,7 @@ VSWeather.CONFIG <- {
     ITERS_PER_FRAME = {
 
         TRACE_JOB_INIT  = 150 // number of trace jobs to initialize per frame
-        TRACE_JOB_RUN   = 50 // number of TraceLine/TraceLineEx/TraceHull function calls per frame (and some other expensive things)
+        TRACE_JOB_RUN   = 100 // number of TraceLine/TraceLineEx/TraceHull function calls per frame (and some other expensive things)
         SPAWN_PARTICLES = 50  // number of particle systems to spawn per frame
     }
 }
