@@ -57,7 +57,9 @@ VSWeather.Generators <- {
     }
 
     // simple Entity I/O, unrolls X number of function calls to EntFire CallScriptFunction commands 
-    function DeferredUnrollSimple( num_calls, delay_mult, func, onyield = null, oncomplete = null ) {
+    function DeferredUnrollSimple( num_calls, delay_mult = 1.0, iters_per_frame = 1, func = null, onyield = null, oncomplete = null ) {
+
+        Assert( func, "null function passed to DeferredUnrollSimple (argument 4)" )
 
         local func_name = func.getinfos().name || UniqueString( "Generator_DeferredUnrollSimple" )
         VSWeather[ func_name ] <- func
@@ -73,9 +75,7 @@ VSWeather.Generators <- {
 
             if ( !( i % iters_per_frame ) ) {
 
-                if ( onyield ) onyield()
-
-                yield 1
+                if ( onyield ) { onyield(); yield 1 }
             }
         }
 

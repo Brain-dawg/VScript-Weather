@@ -21,39 +21,39 @@ VSWeather.particle_count <- 0
 VSWeather.weather_complete <- false
 VSWeather.weather_editing  <- false
 VSWeather.ValidAreasForParticle <- {}
+VSWeather.TraceJobs <- []
+// VSWeather.PendingTraceJobs <- []
 
 function VSWeather::InitNav() {
 
     GetAllAreas( AllAreas )
 
-    local areas_len = AllAreas.len()
-
-    Assert( areas_len, "MAP HAS NO NAVMESH! run nav_generate before running this script" )
+    Assert( AllAreas.len(), "MAP HAS NO NAVMESH! run nav_generate before running this script" )
 
     // Initialize ValidAreasForParticle for each particle type
     foreach( particle_name, cfg in CONFIG.WeatherSystems )
         ValidAreasForParticle[ particle_name ] <- {}
 
-    local newareas = array( areas_len )
-    local rnd = RandomInt( 0, areas_len - 1 )
+    // local newareas = array( areas_len )
+    // local rnd = RandomInt( 0, areas_len - 1 )
 
     // shuffle the areas
     // probably a better way to do this
-    foreach ( area in AllAreas ) {
+    // foreach ( area in AllAreas ) {
 
-        while ( newareas[ rnd ] ) {
+    //     while ( newareas[ rnd ] ) {
 
-            rnd = RandomInt( 0, areas_len - 1 )
-        }
+    //         rnd = RandomInt( 0, areas_len - 1 )
+    //     }
 
-        newareas[ rnd ] = area
-    }
+    //     newareas[ rnd ] = area
+    // }
 
-    AllAreas = newareas
+    // AllAreas = newareas
 }
 
 // Initialize spoke trace data for each area
-function VSWeather::InitializeSpokeTrace( i, area ) {
+function VSWeather::InitNavParticleInfo( i, area ) {
 
     // printl( "Initializing spoke trace for area: " + area_name )
 
@@ -65,60 +65,125 @@ function VSWeather::InitializeSpokeTrace( i, area ) {
     }
 }
 
+function VSWeather::ValidAreasYield( i, area ) {
+
+    foreach ( particle_name, particle_info in ValidAreasForParticle )
+        VSWeather.DebugLog.LOG_PRINT( format( "[%s] Valid areas: (%d / %d)", particle_name, particle_info.len(), AllAreas.len() ), "DEBUG" )
+}
+
 // Run the spoke trace loop using NonBlockingLoop
 function VSWeather::RunSpokeTraceLoop( oncomplete ) {
 
-    printl( "Starting spoke trace loop" )
+    VSWeather.DebugLog.LOG_PRINT( "Starting trace loop (prepare for lag)", "INFO" )
 
     // Collect all areas that need tracing and create trace jobs
-    local trace_jobs = []
+
+    // Define colors for debug drawing
+    local color_valid = [0, 255, 0]    // green
+    local color_warn = [255, 255, 0]   // yellow
+    local color_small = [0, 128, 255]  // blue
+    local color_edge = [255, 128, 0]   // orange
+    local color_danger = [255, 0, 0]   // red
+
+    // local trace_job = {
+
+    //     area_name     = null
+    //     area          = null
+    //     particle_name = null
+    //     particle_info = null
+    //     completed     = false
+    //     trace_failed  = false
+    //     cfg           = null
+    //     trace_start   = null
+    //     trace_end     = null
+    //     hit_sky       = null // start it null and set to true or false so we don't need to trace this again
+        
+    //     // Define trace directions (cardinal + ordinal directions)
+    //     trace_dirs = [
+
+    //         // cardinal
+    //         [ Vector(1, 0, 0),         { status = color_valid, last_result = 2.0 } ], // +X right
+    //         [ Vector(-1, 0, 0),        { status = color_valid, last_result = 2.0 } ], // -X left
+    //         [ Vector(0, 1, 0),         { status = color_valid, last_result = 2.0 } ], // +Y up
+    //         [ Vector(0, -1, 0),        { status = color_valid, last_result = 2.0 } ], // -Y down
+
+    //         // ordinal
+    //         [ Vector(0.5, 0.5, 0),     { status = color_valid, last_result = 2.0 } ], // +X +Y
+    //         [ Vector(-0.5, -0.5, 0),   { status = color_valid, last_result = 2.0 } ], // -X -Y
+    //         [ Vector(-0.5, 0.5, 0),    { status = color_valid, last_result = 2.0 } ], // -X +Y
+    //         [ Vector(0.5, -0.5, 0),    { status = color_valid, last_result = 2.0 } ],  // +X -Y
+
+    //         // sub-ordinal
+    //         [ Vector(0.25, 0.25, 0),   { status = color_valid, last_result = 2.0 } ],   // +X +Y
+    //         [ Vector(-0.25, -0.25, 0), { status = color_valid, last_result = 2.0 } ], // -X -Y
+    //         [ Vector(-0.25, 0.25, 0),  { status = color_valid, last_result = 2.0 } ],  // -X +Y
+    //         [ Vector(0.25, -0.25, 0),  { status = color_valid, last_result = 2.0 } ]   // +X -Y
+    //     ]
+    // }
 
     foreach( particle_name, particle_info in ValidAreasForParticle ) {
 
+        local cfg = CONFIG.WeatherSystems[ particle_name ]
+
         foreach( area, info in particle_info ) {
 
-            trace_jobs.append({
-                area_name     = area.GetID(),
-                area          = area,
-                particle_name = particle_name,
-                particle_info = particle_info,
-                completed     = false,
-                color         = [0, 255, 0],
-                cfg           = CONFIG.WeatherSystems[ particle_name ],
-                trace_start   = area.GetCenter() + Vector( 0, 0, CONFIG.WeatherSystems[ particle_name ].travel_distance ),
-                trace_end     = area.GetCenter(),
-                hit_sky       = null, // start it null and set to true or false so we don't need to trace this again
+            // trace_job.cfg           = CONFIG.WeatherSystems[ particle_name ]
+            // trace_job.area          = area
+            // trace_job.area_name     = area.GetID()
+            // trace_job.trace_end     = area.GetCenter()
+            // trace_job.trace_start   = area.GetCenter() + Vector( 0, 0, trace_job.cfg.travel_distance )
+            // trace_job.particle_name = particle_name
+            // trace_job.particle_info = particle_info
+
+            // TraceJobs.append( trace_job )
+
+            TraceJobs.append({
+
+                area_name     = area.GetID()
+                area          = area
+                particle_name = particle_name
+                particle_info = particle_info
+                completed     = false
+                trace_failed  = false
+                cfg           = cfg
+                trace_start   = area.GetCenter() + Vector( 0, 0, cfg.travel_distance )
+                trace_end     = area.GetCenter()
+                hit_sky       = null // start it null and set to true or false so we don't need to trace this again
+                
+                // Define trace directions (cardinal + ordinal directions)
+                trace_dirs = [
+
+                    // cardinal
+                    [ Vector(1, 0, 0),         { status = color_valid, last_result = 2.0 } ], // +X right
+                    [ Vector(-1, 0, 0),        { status = color_valid, last_result = 2.0 } ], // -X left
+                    [ Vector(0, 1, 0),         { status = color_valid, last_result = 2.0 } ], // +Y up
+                    [ Vector(0, -1, 0),        { status = color_valid, last_result = 2.0 } ], // -Y down
+
+                    // ordinal
+                    [ Vector(0.5, 0.5, 0),     { status = color_valid, last_result = 2.0 } ], // +X +Y
+                    [ Vector(-0.5, -0.5, 0),   { status = color_valid, last_result = 2.0 } ], // -X -Y
+                    [ Vector(-0.5, 0.5, 0),    { status = color_valid, last_result = 2.0 } ], // -X +Y
+                    [ Vector(0.5, -0.5, 0),    { status = color_valid, last_result = 2.0 } ],  // +X -Y
+
+                    // sub-ordinal
+                    [ Vector(0.25, 0.25, 0),   { status = color_valid, last_result = 2.0 } ],   // +X +Y
+                    [ Vector(-0.25, -0.25, 0), { status = color_valid, last_result = 2.0 } ], // -X -Y
+                    [ Vector(-0.25, 0.25, 0),  { status = color_valid, last_result = 2.0 } ],  // -X +Y
+                    [ Vector(0.25, -0.25, 0),  { status = color_valid, last_result = 2.0 } ]   // +X -Y
+                ]
             })
         }
     }
 
     local current_job_index = 0
 
-    // Define colors for debug drawing
-    local color_valid = [0, 255, 0]    // green
-    local color_warn = [255, 255, 0]   // yellow
-    local color_edge = [255, 128, 0]   // orange
-    local color_danger = [255, 0, 0]   // red
-
-    // Define trace directions (4 cardinal directions + 4 diagonal directions)
-    local directions = [
-        Vector(1, 0, 0),       // +X right
-        Vector(0.5, 0.5, 0),   // +X +Y
-        Vector(-1, 0, 0),      // -X left
-        Vector(-0.5, -0.5, 0), // -X -Y
-        Vector(0, 1, 0),       // +Y up
-        Vector(0, -1, 0),      // -Y down
-        Vector(-0.5, 0.5, 0),  // -X +Y
-        Vector(0.5, -0.5, 0)   // +X -Y
-    ]
-
-    local z_step = 100
+    local z_step = 2
 
     local function should_continue() {
 
-        local result = current_job_index in trace_jobs
+        local result = current_job_index in TraceJobs
         if ( !result )
-            print( "\n\nDone tracing! Spawning particles...\n\n" )
+            VSWeather.DebugLog.LOG_PRINT( "Done tracing! Spawning particles...", "INFO" )
         return result
     }
 
@@ -126,27 +191,31 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
 
         // printl( "Tracing job " + current_job_index + " of " + trace_jobs.len() )
 
-        if ( !(current_job_index in trace_jobs) )
+        if ( !(current_job_index in TraceJobs) )
             return
 
-        local job = trace_jobs[current_job_index]
+        local job = TraceJobs[current_job_index]
 
         // first trace straight up to make sure the sky is visible
-        local trace = {
+        local trace_full = {
 
-            start   = job.trace_start
+            start   = job.trace_end
             end     = job.trace_start + Vector( 0, 0, INT_MAX )
             hullmin = Vector( -10, -10, -10 )
             hullmax = Vector( 10, 10, 10 )
             ignore  = GetListenServerHost()
+            allsolid   = false
+            startsolid = false
         }
 
+        // TODO: move this to ValidAreasForParticle collection
+        // no point doing TraceLineEx in the main loop when we can do that on script init.
         if ( job.hit_sky == null ) {
 
-            TraceLineEx( trace )
+            TraceLineEx( trace_full )
 
-            job.hit_sky = trace.surface_props & SURF_SKY
-
+            job.hit_sky = trace_full.surface_flags & SURF_SKY
+            // printl( "trace_full.surface_flags: " + trace_full.surface_flags + " " + job.hit_sky )
             job.completed = !job.hit_sky
 
             // printl( "job.hit_sky: " + job.hit_sky + " " + !job.completed )
@@ -165,54 +234,70 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
         // Perform one Z-level of tracing
         if ( job.trace_start.z > job.trace_end.z ) {
 
-            foreach( dir in directions ) {
+            foreach( dir_status in job.trace_dirs ) {
+
+                // __DumpScope(0, dir_status)
+
+                local dir  = dir_status[0]
+                local info = dir_status[1]
 
                 if ( job.completed )
                     break
 
                 local spoke_end = Vector( job.trace_start.x + dir.x * job.cfg.radius, job.trace_start.y + dir.y * job.cfg.radius, job.trace_start.z )
-                local result1 = TraceLine( job.trace_start, spoke_end, null )
-                local result2 = TraceLine( spoke_end, job.trace_start, null )
+                local trace_result = TraceLine( job.trace_start, spoke_end, null ) + TraceLine( spoke_end, job.trace_start, null )
 
-                // printf( "TRACING: %s <-> %s -> %d\n", job.trace_start.ToKVString(), spoke_end.ToKVString(), result1 + result2 );
+                // this trace hit a surface
+                // traces that progressively get smaller usually mean we're hitting a rock or something on the ground
+                // we can safely ignore these and have rain fall through them
+                if ( trace_result < info.last_result - CONFIG.TRACE_FORGIVENESS ) {
 
-                // first trace hit a surface
-                if ( result1 + result2 < 2 ) {
+                    // if (result1 + result2 >= 1.75) {
 
-                    // we failed our first trace
-                    // check if subsequent traces enter playable space
-                    // if they do, this particle will clip through a ceiling/wall or something, delete it
-                    if ( !job.particle_info[ job.area ].origin_override.Length() ) {
+                        // printf( "TRACING: %s <-> %s -> %0.2f\n", job.trace_start.ToKVString(), spoke_end.ToKVString(), result1 + result2 );
+                        // status = color_small
+                    // }
 
-                        job.color = color_warn
+                    if ( info.status != color_warn ) {
+
                         // use this trace position to override the particle system origin, then look for another trace that enters playable space
                         job.particle_info[ job.area ].origin_override = Vector( job.trace_start.x, job.trace_start.y, job.trace_start.z + z_step )
+                        info.status = color_warn
+                        info.last_result = trace_result
                     }
                 }
 
                 // ... but a subsequent trace did not
-                else if ( job.particle_info[ job.area ].origin_override.Length() ) {
+                // we might've just punched through a ceiling
 
-                    trace.start = spoke_end
-                    trace.end = spoke_end
-                    trace.hullmin = Vector( -10, -10, -10 )
-                    trace.hullmax = Vector( 10, 10, 10 )
-                    // TraceLineEx( trace )
-                    TraceHull( trace )
-                    if ( trace.surface_name == "**displacement**" )
-                        printl( "trace.surface_name: " + trace.surface_name + " : " + trace.surface_flags + " : " + trace.surface_props )
+                // check if we hit a trace that's larger than the last one
+                // if so, we've probably entered playable/visible space.
+                // TODO: this alone causes false-negatives, leaving "dead spots" with no rain
+                // better than raining inside though, right?
+                else if ( trace_result <= 2.0 - CONFIG.TRACE_FORGIVENESS ) {
 
-                    if ( trace.surface_name[0] == '*' && trace.surface_name != "**displacement**" )                   
-                        // ignore rocks and stuff     
-                       job.color = color_edge
-                    else
-                        // trace entered playable space.  Stop tracing
-                        job.color = color_danger, job.completed = true
 
+                    if ( (CONFIG.IGNORE_DISPLACEMENTS || CONFIG.IGNORE_PROPS) ) {
+
+                        trace_full.start = job.trace_start
+                        trace_full.end = spoke_end
+                        TraceLineEx( trace_full )
+
+                        if ( trace_full.surface_name == "**displacement**" && CONFIG.IGNORE_DISPLACEMENTS )
+                            continue
+
+                        else if ( ( trace_full.surface_name == "**studiomdl**" || trace_full.surface_name == "**empty**" ) && CONFIG.IGNORE_PROPS )
+                            continue
+                    }
+                        info.status = color_danger
+                        job.trace_failed = true
+                        job.completed = true
                 }
+        
+                // set TRACE_FUNCS very low ( < 6 ) to avoid crashing before uncommenting this
+                // use host_timescale to compensate for the slowdown
 
-                if ( job.color[0] )
-                    DebugDrawLine( job.trace_start, spoke_end, job.color[0], job.color[1], job.color[2], false, job.completed ? 30.0 : 0.1 )
+                // DebugDrawLine( job.trace_start, spoke_end, info.status[0], info.status[1], info.status[2], false, info.status == color_valid ? 0.5 : 2.0 )
             }
 
             // Step the start position down for next trace
@@ -231,24 +316,18 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
         if ( job.completed ) {
 
             // Remove areas that failed validation
-            // printl( job.color == color_danger )
-            if ( job.color == color_danger )
+            // printl( job.trace_failed )
+            if ( job.trace_failed )
                 delete ValidAreasForParticle[job.particle_name][job.area]
 
             current_job_index++
         }
     }
 
-    return Generators.NonBlockingLoop( should_continue, CONFIG.ITERS_PER_FRAME.TRACE_JOB_RUN, trace_step, null, oncomplete )
+    return Generators.NonBlockingLoop( should_continue, CONFIG.ITERS_PER_FRAME.TRACE_FUNCS, trace_step, null, oncomplete )
 }
 
 // VSWeather.Generators.NonBlockingLoop(  @() tracing, 1023, _SpokeTrace, null, @() tracing = false )
-
-function VSWeather::ValidAreasYield( i, area ) {
-
-    foreach ( particle_name, particle_info in ValidAreasForParticle )
-        printf( "[%s] Valid areas: (%d / %d)\n", particle_name, particle_info.len(), AllAreas.len() )
-}
 
 function VSWeather::InitializeSpawnParticles() {
 
@@ -317,8 +396,6 @@ function VSWeather::SpawnParticles( area, info ) {
     if ( particle_count >= CONFIG.MAX_WEATHER_SYSTEMS )
         return
 
-    particle_count++
-
     local ent = SpawnEntityFromTable( "info_particle_system", kvs )
 
     if ( ent.GetOrigin() != final_origin )
@@ -328,6 +405,8 @@ function VSWeather::SpawnParticles( area, info ) {
     DebugDrawLine( origin_pre_offset, final_origin, color_small[0], color_small[1], color_small[2], false, 60.0 )
 
     DebugLog.LOG_PRINT( "Spawned particle system: " + particle_name + " at " + final_origin.ToKVString(), "DEBUG" )
+
+    particle_count++
 }
 
 // Start the generator chain
@@ -339,7 +418,7 @@ function VSWeather::Start() {
 
     if ( i + CONFIG.MAX_WEATHER_SYSTEMS > MAX_EDICTS )
         return DebugLog.LOG_PRINT( format( "Not enough edicts to spawn particles.  %d + %d > %d", i, CONFIG.MAX_WEATHER_SYSTEMS, MAX_EDICTS ), "ERROR" )
-    
+
     weather_complete = false
 
     Generators.GeneratorChain({
@@ -350,8 +429,8 @@ function VSWeather::Start() {
 
                 return Generators.DeferredForEach(
                     AllAreas,
-                    CONFIG.ITERS_PER_FRAME.TRACE_JOB_INIT,
-                    InitializeSpokeTrace, // initialize spoke trace for each area
+                    CONFIG.ITERS_PER_FRAME.NAV_AREAS,
+                    InitNavParticleInfo, // initialize spoke trace for each area
                     ValidAreasYield, // yields for each iters_per_frame
                     oncomplete       // completion callback (REQUIRED for chaining)
                 )

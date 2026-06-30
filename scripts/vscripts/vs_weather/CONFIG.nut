@@ -2,10 +2,9 @@
 VSWeather.CONFIG <- {
 
     /******************
-     *                *
      * BASIC SETTINGS *
-     *                *
      ******************/
+
     /********************************************************************************
      * maximum number of info_particle_systems to spawn                             *
      *                                                                              *
@@ -13,26 +12,53 @@ VSWeather.CONFIG <- {
      * If detected valid areas < MAX_WEATHER_SYSTEMS,                               *
      * the number of spawned particles will be reduced to the number of valid areas *
      ********************************************************************************/
-    MAX_WEATHER_SYSTEMS = 50
+    MAX_WEATHER_SYSTEMS = 300
+
 
     /*******************************************************************************************
-     * Ignore prop_static/prop_dynamic/anything using a studiomdl                              *
-     * This is so small rocks/trees/etc don't invalidate potential weather system locations    *
-     * However, if you have e.g. a prop_static shack/entire building, this will cause problems *
+     * Ignore all displacements (terrain)                                                      *
+     *                                                                                         *
+     * If all underground/indoors sections are closed off by world brushes or static props     *
+     * (e.g. no caves), setting this to true will allow all rain to clip through displacements *
+     * If your map allows this, this may alleviate some "dead spots" with no rain.             *
+     * This will completely break e.g. tc_hydro or pl_upward caves.  Be careful                *
      *******************************************************************************************/
-    IGNORE_PROPS = true
+    IGNORE_DISPLACEMENTS = false
+
+
+    /*********************************************************************
+     * Ignore all props (static/dynamic)                                 *
+     *                                                                   *
+     * Same as above, but for props.                                     *
+     * Don't use this if your map has e.g. prop_static shacks/roofs/etc. *
+     *********************************************************************/
+    IGNORE_PROPS = false
+
+    /**********************************************************************************
+     * Adds forgiveness to the trace system                                           *
+     * This is intended to ignore thin vertical objects (telephone poles, trees, etc) *
+     * Higher values = larger objects get ignored                                     *
+     *                                                                                *
+     * A little weird under the hood:                                                 *
+     * this value is subtracted from comparison between 2 TraceLine results           *
+     * 0-100% forgiveness is between 0.0 and 2.0, not 0.0 and 1.0                     *
+     * TRACE_FORGIVENESS = 1.0 = 50% forgiveness, 2.0 = ignore everything             *
+     **********************************************************************************/
+    TRACE_FORGIVENESS = 0.00
 
     WeatherSystems = {
 
-        /****************************************
-         * define particle systems by name here *
-         ****************************************/
+        /******************************************************************************
+         * define particle systems by name here                                       *
+         * TODO: While there is code to support multiple particle systems...          *
+         * it doesn't work correctly.  Only one particle system is supported for now. *
+         ******************************************************************************/
         env_rain_002_256 = {
 
             /******************************************************************************
              * "safe" radius of this effect before it will clip into surrounding geometry *
              ******************************************************************************/
-            radius = 300
+            radius = 256
 
             /**********************************************************************************
              * distance from the particle system origin -> the point where the particle stops *
@@ -78,9 +104,7 @@ VSWeather.CONFIG <- {
     }
 
     /***************************
-     *                         *
      * ADVANCED SETTINGS BELOW *
-     *                         *
      ***************************/
 
     /******************************************************************
@@ -94,8 +118,15 @@ VSWeather.CONFIG <- {
      ******************************************************************/
     ITERS_PER_FRAME = {
 
-        TRACE_JOB_INIT  = 150 // number of trace jobs to initialize per frame
-        TRACE_JOB_RUN   = 100 // number of TraceLine/TraceLineEx/TraceHull function calls per frame (and some other expensive things)
-        SPAWN_PARTICLES = 50  // number of particle systems to spawn per frame
+        // number of nav areas to process per frame
+        NAV_AREAS  = 600
+        // number of TraceLine/TraceLineEx/TraceHull function calls per-job per frame (and some other expensive things)
+        // this doesn't need to be divisible by 12 but is recommended.
+        TRACE_FUNCS = 12 * 64
+        // number of concurrent trace jobs running per frame
+        // not implemented, use TRACE_FUNCS instead.
+        // TRACE_JOBS = 4
+        // number of particle systems to spawn per frame
+        SPAWN_PARTICLES = 100
     }
 }
