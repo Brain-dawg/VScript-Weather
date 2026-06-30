@@ -9,7 +9,7 @@ VSWeather.DebugLog <- {
 
     function LOG_PRINT( message, severity = "INFO" ) {
 
-        if ( !GetInt( "developer" ) && severity != "INFO" )
+        if ( !GetInt( "developer" ) && severity == "DEBUG" )
             return
 
         ClientPrint( null, 3, this["LOG_" + severity] + message )

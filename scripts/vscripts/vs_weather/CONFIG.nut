@@ -21,7 +21,7 @@ VSWeather.CONFIG <- {
      * If all underground/indoors sections are closed off by world brushes or static props     *
      * (e.g. no caves), setting this to true will allow all rain to clip through displacements *
      * If your map allows this, this may alleviate some "dead spots" with no rain.             *
-     * This will completely break e.g. tc_hydro or pl_upward caves.  Be careful                *
+     * This will completely break e.g. tc_hydro caves.  Be careful                             *
      *******************************************************************************************/
     IGNORE_DISPLACEMENTS = false
 
@@ -36,7 +36,7 @@ VSWeather.CONFIG <- {
 
     /**********************************************************************************
      * Adds forgiveness to the trace system                                           *
-     * This is intended to ignore thin vertical objects (telephone poles, trees, etc) *
+     * This is intended to ignore smaller decorations (roof trims, fence roofs, etc)  *
      * Higher values = larger objects get ignored                                     *
      *                                                                                *
      * A little weird under the hood:                                                 *
@@ -44,7 +44,7 @@ VSWeather.CONFIG <- {
      * 0-100% forgiveness is between 0.0 and 2.0, not 0.0 and 1.0                     *
      * TRACE_FORGIVENESS = 1.0 = 50% forgiveness, 2.0 = ignore everything             *
      **********************************************************************************/
-    TRACE_FORGIVENESS = 0.00
+    TRACE_FORGIVENESS = 0.05
 
     WeatherSystems = {
 
@@ -58,7 +58,7 @@ VSWeather.CONFIG <- {
             /******************************************************************************
              * "safe" radius of this effect before it will clip into surrounding geometry *
              ******************************************************************************/
-            radius = 256
+            radius = 264
 
             /**********************************************************************************
              * distance from the particle system origin -> the point where the particle stops *

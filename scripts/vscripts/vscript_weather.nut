@@ -245,16 +245,16 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
                     break
 
                 local spoke_end = Vector( job.trace_start.x + dir.x * job.cfg.radius, job.trace_start.y + dir.y * job.cfg.radius, job.trace_start.z )
-                local trace_result = TraceLine( job.trace_start, spoke_end, null ) + TraceLine( spoke_end, job.trace_start, null )
+                local trace_result = TraceLine( job.trace_start, spoke_end, GetListenServerHost() ) + TraceLine( spoke_end, job.trace_start, GetListenServerHost() )
 
                 // this trace hit a surface
                 // traces that progressively get smaller usually mean we're hitting a rock or something on the ground
                 // we can safely ignore these and have rain fall through them
-                if ( trace_result < info.last_result - CONFIG.TRACE_FORGIVENESS ) {
+                if ( trace_result < info.last_result ) {
 
                     // if (result1 + result2 >= 1.75) {
 
-                        // printf( "TRACING: %s <-> %s -> %0.2f\n", job.trace_start.ToKVString(), spoke_end.ToKVString(), result1 + result2 );
+                        VSWeather.DebugLog.LOG_PRINT( format( "TRACING: %s <-> %s -> %0.2f", job.trace_start.ToKVString(), spoke_end.ToKVString(), trace_result ), "DEBUG" );
                         // status = color_small
                     // }
 
@@ -263,8 +263,8 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
                         // use this trace position to override the particle system origin, then look for another trace that enters playable space
                         job.particle_info[ job.area ].origin_override = Vector( job.trace_start.x, job.trace_start.y, job.trace_start.z + z_step )
                         info.status = color_warn
-                        info.last_result = trace_result
                     }
+                    info.last_result = trace_result
                 }
 
                 // ... but a subsequent trace did not
@@ -274,7 +274,7 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
                 // if so, we've probably entered playable/visible space.
                 // TODO: this alone causes false-negatives, leaving "dead spots" with no rain
                 // better than raining inside though, right?
-                else if ( trace_result <= 2.0 - CONFIG.TRACE_FORGIVENESS ) {
+                else if ( info.status != color_valid && trace_result <= 2.0 - (CONFIG.TRACE_FORGIVENESS || 0.001) ) {
 
 
                     if ( (CONFIG.IGNORE_DISPLACEMENTS || CONFIG.IGNORE_PROPS) ) {
