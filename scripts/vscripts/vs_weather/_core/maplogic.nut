@@ -3,6 +3,45 @@ VSWeather.MapLogic <- {
     // reusable return buffer for entity lists
     return_buffer = {}
 
+    logic_ents = {
+
+        tf_logic_koth                    = "KOTH"
+        tf_logic_arena                   = "Arena"
+        tf_logic_medieval                = "Medieval"
+        tf_logic_bounty_mode             = "Bounty"
+        tf_logic_hybrid_ctf_cp           = "CTF/CP"
+        tf_logic_mann_vs_machine         = "MvM"
+        tf_logic_multiple_escort         = "PLR"
+        tf_logic_special_delivery_mode   = "SD"
+        tf_logic_robot_destruction_mode  = "RD"
+        tf_logic_player_destruction_mode = "PD"
+    }
+
+    function GetGamemode() {
+
+        local ent
+        while ( ent = FindByClassname( ent, "tf_logic*" ) )
+            if ( ent.GetClassname() in logic_ents )
+                return logic_ents[ ent.GetClassname() ]
+
+        while ( ent = FindByClassname( ent, "team_train_watcher" ) )
+            return "PL"
+
+        while ( ent = FindByClassname( ent, "passtime_logic" ) )
+            return "PASS"
+
+        while ( ent = FindByClassname( ent, "item_teamflag" ) ) {
+
+            for ( local spawner; spawner = FindByClassname( spawner, "info_powerup_spawn" ); )
+                return "Mannpower"
+
+            for ( local cap; cap = FindByClassname( cap, "func_capturezone" ); )
+                return "CTF"
+        }
+
+        return split( MAPNAME, "_" )[0].toupper()
+    }
+
     function GetPayloadTracks() {
         
         return_buffer.clear()

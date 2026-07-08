@@ -37,14 +37,9 @@ VSWeather.CONFIG <- {
     /**********************************************************************************
      * Adds forgiveness to the trace system                                           *
      * This is intended to ignore smaller decorations (roof trims, fence roofs, etc)  *
-     * Higher values = larger objects get ignored                                     *
-     *                                                                                *
-     * A little weird under the hood:                                                 *
-     * this value is subtracted from comparison between 2 TraceLine results           *
-     * 0-100% forgiveness is between 0.0 and 2.0, not 0.0 and 1.0                     *
-     * TRACE_FORGIVENESS = 1.0 = 50% forgiveness, 2.0 = ignore everything             *
+     * Higher values = larger objects get ignored.                                    *
      **********************************************************************************/
-    TRACE_FORGIVENESS = 0.05
+    TRACE_FORGIVENESS = 1.10
 
     WeatherSystems = {
 
@@ -58,7 +53,7 @@ VSWeather.CONFIG <- {
             /******************************************************************************
              * "safe" radius of this effect before it will clip into surrounding geometry *
              ******************************************************************************/
-            radius = 264
+            radius = 256
 
             /**********************************************************************************
              * distance from the particle system origin -> the point where the particle stops *
@@ -119,10 +114,10 @@ VSWeather.CONFIG <- {
     ITERS_PER_FRAME = {
 
         // number of nav areas to process per frame
-        NAV_AREAS  = 600
+        NAV_AREAS  = 1200
         // number of TraceLine/TraceLineEx/TraceHull function calls per-job per frame (and some other expensive things)
         // this doesn't need to be divisible by 12 but is recommended.
-        TRACE_FUNCS = 12 * 64
+        TRACE_FUNCS = 12*128
         // number of concurrent trace jobs running per frame
         // not implemented, use TRACE_FUNCS instead.
         // TRACE_JOBS = 4

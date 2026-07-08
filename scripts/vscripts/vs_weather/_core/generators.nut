@@ -19,20 +19,17 @@ VSWeather.Generators <- {
 
     function GeneratorChain( steps ) {
 
-        local step_names = steps.keys();
-
         function executeStep(i) {
 
-            VSWeather.DebugLog.LOG_PRINT( "executeStep called with i=" + i + ", step_names.len()=" + step_names.len(), "DEBUG" )
+            DebugLog.LOG_PRINT( "executeStep called with i=" + i + ", step_names.len()=" + steps.len(), "DEBUG" )
 
-            if ( !(i in step_names) ) {
-                VSWeather.DebugLog.LOG_PRINT( "Generator chain complete!", "DEBUG" )
+            if ( !(i in steps) ) {
+                DebugLog.LOG_PRINT( "Generator chain complete!", "DEBUG" )
                 return  // Chain complete
             }
 
-            local step_name = step_names[i];
-            local step_config = steps[step_name];
-            VSWeather.DebugLog.LOG_PRINT( "Executing generator step: " + step_name, "DEBUG" )
+            local step_config = steps[i];
+            DebugLog.LOG_PRINT( "Executing generator step: " + (i+1), "DEBUG" )
             // Extract parameters from the step configuration
             local generator_factory = step_config[0];  // Function that creates the generator
             local custom_oncomplete = step_config.len() ? step_config[step_config.len()-1] : null;
@@ -40,7 +37,7 @@ VSWeather.Generators <- {
             // Create the chaining oncomplete function
             local function chainComplete( ... ) {
 
-               VSWeather.DebugLog.LOG_PRINT( "Generator step '" + step_name + "' completed!", "DEBUG" )
+               DebugLog.LOG_PRINT( "Generator step " + (i+1) + " completed!", "DEBUG" )
                 if ( custom_oncomplete )
                     custom_oncomplete.acall( [this].extend(vargv) );
                 executeStep( i + 1 );  // Continue to next step
@@ -48,7 +45,7 @@ VSWeather.Generators <- {
 
             // Create and start the generator with the chaining complete callback
             local generator = generator_factory( chainComplete );
-            VSWeather.DebugLog.LOG_PRINT( "Started generator: " + generator, "DEBUG" )
+            DebugLog.LOG_PRINT( "Started generator: " + generator, "DEBUG" )
 
             StartGenerator( generator );
         }
@@ -57,7 +54,7 @@ VSWeather.Generators <- {
     }
 
     // simple Entity I/O, unrolls X number of function calls to EntFire CallScriptFunction commands 
-    function DeferredUnrollSimple( num_calls, delay_mult = 1.0, iters_per_frame = 1, func = null, onyield = null, oncomplete = null ) {
+    function DeferredUnrollSimple( num_calls, delay_mult = 1.0, func = null, onyield = null, oncomplete = null ) {
 
         Assert( func, "null function passed to DeferredUnrollSimple (argument 4)" )
 
@@ -73,10 +70,10 @@ VSWeather.Generators <- {
 
             EntFire( entity_name, "CallScriptFunction", func_name, delay )
 
-            if ( !( i % iters_per_frame ) ) {
+            // if ( !( i % iters_per_frame ) ) {
 
-                if ( onyield ) { onyield(); yield 1 }
-            }
+            //     if ( onyield ) { onyield(); yield 1 }
+            // }
         }
 
         local func_delete = "delete " + func_name
@@ -89,6 +86,38 @@ VSWeather.Generators <- {
         EntFire( func_delete, "Kill" )
     }
 
+    // function DeferredUnrollIterable( iterable, num_calls, delay_mult = 1.0, func = null, onyield = null, oncomplete = null ) {
+
+    //     Assert( func, "null function passed to DeferredUnrollSimple (argument 4)" )
+
+    //     local func_name = func.getinfos().name || UniqueString( "Generator_DeferredUnrollIterable" )
+    //     VSWeather[ func_name ] <- func
+    //     // start on next frame
+    //     yield 1
+
+    //     local delay = SINGLE_TICK
+
+    //     foreach( k, v in iterable ) {
+
+    //         EntFire( "__vs_weather", "CallScriptFunction", func_name, delay )
+    //         delay += SINGLE_TICK
+    //         // if ( !( delay % iters_per_frame ) ) {
+
+    //         //     if ( onyield ) onyield( k, v )
+
+    //         //     yield 1
+    //         // }
+    //     }
+
+    //     local func_delete = "delete " + func_name
+    //     EntFire( "__vs_weather", "RunScriptCode", func_delete, delay + SINGLE_TICK )
+
+    //     local tmp = CreateByClassname( "logic_autosave" )
+    //     SetPropString( tmp, STRING_NETPROP_NAME, func_delete )
+    //     ::DispatchSpawn( tmp )
+    //     SetPropString( tmp, STRING_NETPROP_PURGESTRINGS, func_delete )
+    //     EntFire( func_delete, "Kill" )
+    // }
     // generic loop, iters_per_frame number of function calls per think
     function DeferredFor( max, iters_per_frame, func, onyield = null, oncomplete = null ) {
 

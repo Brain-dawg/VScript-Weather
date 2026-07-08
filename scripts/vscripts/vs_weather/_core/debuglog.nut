@@ -16,6 +16,6 @@ VSWeather.DebugLog <- {
 
         Assert( ( severity != "ERROR" && severity != "FATAL" ), message )
 
-        printl( "[VS WEATHER] " + message )
+        // printl( "[VS WEATHER] " + message )
     }
 }
