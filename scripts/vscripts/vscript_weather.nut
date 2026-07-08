@@ -8,12 +8,12 @@ Include( "create_scope" )
 // dummy entity to scope everything to
 ___CREATE_SCOPE( "__vs_weather", "VSWeather", "VSWeatherEntity", "VSWeatherThink" )
 
+Include( "../CONFIG.nut" )
 Include( "debuglog")
 Include( "util" )
 Include( "generators" )
 Include( "maplogic" )
 Include( "navutils" )
-Include( "../CONFIG.nut" )
 
 DebugDrawClear()
 // VSWeather.AreasToTrace <- []
@@ -25,12 +25,18 @@ VSWeather.weather_editing  <- false
 VSWeather.ValidAreasForParticle <- {}
 VSWeather.TraceJobs    <- []
 VSWeather.FailedJobs   <- []
+VSWeather.SpawnedParticles <- []
+
+VSWeather.Events <- {}
+VSWeather.ChatCommands <- {}
 
 function VSWeather::InitNav() {
 
+    AllAreas.clear()
     GetAllAreas( AllAreas )
 
-    Assert( AllAreas.len(), "MAP HAS NO NAVMESH! type '.wnav' to create one" )
+    if ( !AllAreas.len() )
+        return DebugLog.LOG_PRINT( "MAP HAS NO NAVMESH! type '.wnav' to create one", "FATAL" )
 
     // Initialize ValidAreasForParticle for each particle type
     foreach( particle_name, cfg in CONFIG.WeatherSystems )
@@ -58,7 +64,7 @@ function VSWeather::InitNav() {
     }
 
     // ensure important map entities get iterated over first.
-    AllAreas = important_ents.extend( AllAreas.values() )
+    AllAreas = important_ents.extend( AllAreas.values() ).filter( @( _, area ) area.IsValid() )
 }
 
 // Initialize spoke trace data for each area
@@ -246,8 +252,6 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
 
             foreach( dir_status in job.trace_dirs ) {
 
-                // __DumpScope(0, dir_status)
-
                 local dir  = dir_status[0]
                 local info = dir_status[1]
 
@@ -263,7 +267,7 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
 
                     // if (result1 + result2 >= 1.75) {
 
-                        DebugLog.LOG_PRINT( format( "TRACING %s: %s <-> %s -> %0.2f", ""+job.area, job.trace_start.ToKVString(), spoke_end.ToKVString(), trace_result ), "DEBUG" );
+                        // DebugLog.LOG_PRINT( format( "TRACING %s: %s <-> %s -> %0.2f", ""+job.area, job.trace_start.ToKVString(), spoke_end.ToKVString(), trace_result ), "DEBUG" );
                         // status = color_small
                     // }
 
@@ -414,6 +418,8 @@ function VSWeather::SpawnParticles( area, info ) {
 
     local ent = SpawnEntityFromTable( "info_particle_system", kvs )
 
+    SpawnedParticles.append( kvs )
+
     if ( ent.GetOrigin() != final_origin )
         ent.SetAbsOrigin( final_origin )
 
@@ -436,6 +442,8 @@ function VSWeather::Start() {
         return DebugLog.LOG_PRINT( format( "Not enough edicts to spawn particles.  %d + %d > %d", i, CONFIG.MAX_WEATHER_SYSTEMS, MAX_EDICTS ), "ERROR" )
 
     weather_complete = false
+
+    AllAreas = AllAreas.filter( @( _, area ) area && area.IsValid() )
 
     Generators.GeneratorChain([
 
@@ -465,38 +473,65 @@ function VSWeather::Start() {
 
 // chat commands are all prefixed with ".w"
 // e.g. "edit" is ".wedit"
-VSWeather.ChatCommands <- {
 
-    function trace( _ ) { Start() }
-    function start( _ ) { Start() }
+function VSWeather::ChatCommands::trace( params, args ) { Start() }
+function VSWeather::ChatCommands::start( params, args ) { trace( params, args ) }
+function VSWeather::ChatCommands::edit( params, args ) {}
+function VSWeather::ChatCommands::save( params, args ) {}
 
-    function edit( params ) {
+function VSWeather::ChatCommands::reset( params, args ) {
 
+    DebugLog.LOG_PRINT( "Reloading...", "WARNING" )
+    StringToFile( "__vsweather_nav_cleanup_and_save", "0" )
+
+    // TODO: this should be getting cleared out by __vs_weather being killed
+    // likely ___CREATE_SCOPE nonsense
+    GameEventCallbacks.player_say.clear()
+    EntFire( "__vs_weather*", "Kill" )
+    EntFire( "worldspawn", "RunScriptFile", getstackinfos(1).src, 0.1 )
+    // SendToConsole( "mp_restartgame_immediate 1;" )
+}
+function VSWeather::ChatCommands::reload( params, args ) { reset( params, args ) }
+
+function VSWeather::ChatCommands::nav( params, args ) {
+
+    SendToConsole( "nav_edit 1" )
+
+    if ( !args.len() )
+        return DebugLog.LOG_PRINT( "Usage: .wnav <create|cleanup|subdivide|disconnect>", "INFO" )
+
+    switch ( args[0] ) {
+
+        case "create":
+            NavUtils.CreateNav()
+            break
+        case "cleanup":
+            NavUtils.SubdivideLargeAreas()
+            NavUtils.DisconnectUnreachableAreas()
+            break
+        case "subdivide":
+            NavUtils.SubdivideLargeAreas()
+            break
+        case "disconnect":
+            NavUtils.DisconnectUnreachableAreas()
+            break
+        default:
+            DebugLog.LOG_PRINT( "Usage: .wnav <create|cleanup|subdivide|disconnect>", "INFO" )
+            break
     }
+}
 
-    function save( params ) {
+function VSWeather::ChatCommands::failed( params, args ) {
 
+    DebugDrawClear()
+    foreach( job in FailedJobs ) {
+
+        DebugLog.LOG_PRINT( "Failed job: " + job.area_name + " -> " + job.particle_name + " at " + job.trace_start.ToKVString(), "INFO" )
+
+        local radius = CONFIG.WeatherSystems[ job.particle_name ].radius
+        DebugDrawBox( job.trace_end + Vector( 0, 0, CONFIG.WeatherSystems[ job.particle_name ].travel_distance * 0.5 ), Vector( -radius, -radius, -radius ), Vector( radius, radius, radius ), 255, 0, 0, 0, 60.0 )
     }
-
-    function nav( params ) { NavUtils.CreateNav() }
-
-    function failed( params ) {
-
-        DebugDrawClear()
-        foreach( job in FailedJobs ) {
-
-            DebugLog.LOG_PRINT( "Failed job: " + job.area_name + " -> " + job.particle_name + " at " + job.trace_start.ToKVString(), "INFO" )
-
-            local radius = CONFIG.WeatherSystems[ job.particle_name ].radius
-            DebugDrawBox( job.trace_end + Vector( 0, 0, CONFIG.WeatherSystems[ job.particle_name ].travel_distance * 0.5 ), Vector( -radius, -radius, -radius ), Vector( radius, radius, radius ), 255, 0, 0, 0, 60.0 )
-        }
-    }
-}.setdelegate( VSWeather )
-
-if ( "Events" in VSWeather )
-    delete VSWeather.Events
-
-VSWeather.Events <- {}.setdelegate( VSWeather )
+}
 
 function VSWeather::Events::OnGameEvent_player_say( params ) {
 
@@ -505,7 +540,9 @@ function VSWeather::Events::OnGameEvent_player_say( params ) {
     if ( text[0] != '.' || !(1 in text) || text[1] != 'w' )
         return
 
-    local cmd = text.slice( 2 )
+    local args = split( text, " ", true )
+
+    local cmd = args[0].slice( 2 )
 
     if ( !(cmd in ChatCommands) ) {
 
@@ -513,14 +550,23 @@ function VSWeather::Events::OnGameEvent_player_say( params ) {
         return
     }
 
+    args.remove( 0 )
+
     // if ( !weather_complete ) {
 
     //     DebugLog.LOG_PRINT( "Weather is not complete yet.", "INFO" )
     //     return
     // }
 
-    ChatCommands[ cmd ]( params )
+    ChatCommands[ cmd ]( params, args )
 }
+
 __CollectGameEventCallbacks( VSWeather.Events )
 
-VSWeather.InitNav()
+function VSWeather::_OnCreate() {
+
+    SendToConsole( "sv_cheats 1; mp_waitingforplayers_cancel 1;" )
+    EntFire( "team_round_timer", "Pause" )
+    VSWeather.InitNav()
+    DebugLog.LOG_PRINT( "Loaded!", "INFO" )
+}

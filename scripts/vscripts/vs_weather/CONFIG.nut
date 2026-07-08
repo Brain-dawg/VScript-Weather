@@ -39,7 +39,13 @@ VSWeather.CONFIG <- {
      * This is intended to ignore smaller decorations (roof trims, fence roofs, etc)  *
      * Higher values = larger objects get ignored.                                    *
      **********************************************************************************/
-    TRACE_FORGIVENESS = 1.10
+    TRACE_FORGIVENESS = 1.0
+
+    /**************************************************************
+     * If a nav's total area size is larger than this value in HU *
+     * the navmesh helpers for subdividing will run on it.        *
+     **************************************************************/
+    NAV_SUBDIVIDE_LARGE_AREA_THRESHOLD = 200*200
 
     WeatherSystems = {
 
@@ -118,10 +124,7 @@ VSWeather.CONFIG <- {
         // number of TraceLine/TraceLineEx/TraceHull function calls per-job per frame (and some other expensive things)
         // this doesn't need to be divisible by 12 but is recommended.
         TRACE_FUNCS = 12*128
-        // number of concurrent trace jobs running per frame
-        // not implemented, use TRACE_FUNCS instead.
-        // TRACE_JOBS = 4
         // number of particle systems to spawn per frame
-        SPAWN_PARTICLES = 100
+        SPAWN_PARTICLES = 300
     }
 }

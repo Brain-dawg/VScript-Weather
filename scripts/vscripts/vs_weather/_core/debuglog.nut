@@ -1,21 +1,24 @@
-VSWeather.DebugLog <- {
+VSWeather.DebugLog <- {}
 
-    // Logging
-    LOG_INFO   = "\x0704C6DB[VS WEATHER INFO]\x07FBECCB "
-    LOG_DEBUG   = "\x0722FF22[VS WEATHER DEBUG]\x07FBECCB "
-    LOG_WARNING = "\x07FFFF66[VS WEATHER WARNING]\x07FBECCB "
-    LOG_ERROR   = "\x07FF0000[VS WEATHER ERROR]\x07FBECCB "
-    LOG_FATAL   = "\x07FF0000[VS WEATHER FATAL]\x07FBECCB "
+// Logging
+VSWeather.DebugLog.LOG_INFO    <- "\x0704C6DB[VSWEATHER]\x07FBECCB "
+VSWeather.DebugLog.LOG_DEBUG   <- "\x0722FF22[VSWEATHER]\x07FBECCB "
+VSWeather.DebugLog.LOG_WARNING <- "\x07FFFF66[VSWEATHER]\x07FBECCB "
+VSWeather.DebugLog.LOG_ERROR   <- "\x07FF0000[VSWEATHER]\x07FBECCB "
+VSWeather.DebugLog.LOG_FATAL   <- "\x07FF0000[VSWEATHER]\x07FBECCB "
 
-    function LOG_PRINT( message, severity = "INFO" ) {
+function VSWeather::DebugLog::LOG_PRINT( message, severity = "INFO" ) {
 
-        if ( !GetInt( "developer" ) && severity == "DEBUG" )
-            return
+    message += "\n"
+    if ( severity == "DEBUG" && GetInt( "developer" ) < 2 )
+        return
 
-        ClientPrint( null, 3, this["LOG_" + severity] + message )
+    ClientPrint( null, 3, this["LOG_" + severity] + message )
 
-        Assert( ( severity != "ERROR" && severity != "FATAL" ), message )
+    if ( severity == "ERROR" )
+        error( message )
 
-        // printl( "[VS WEATHER] " + message )
-    }
+    Assert( severity != "FATAL", message )
+
+    // printl( "[VS WEATHER] " + message )
 }
