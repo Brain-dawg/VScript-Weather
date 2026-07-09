@@ -138,7 +138,7 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
     //     trace_start   = null
     //     trace_end     = null
     //     hit_sky       = null // start it null and set to true or false so we don't need to trace this again
-        
+
     //     // Define trace directions (cardinal + ordinal directions)
     //     trace_dirs = [
 
@@ -190,7 +190,7 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
                 trace_start   = area.GetCenter() + Vector( 0, 0, cfg.travel_distance * particle_info[ area ].start_in_skybox )
                 trace_end     = area.GetCenter()
                 hit_sky       = null // start it null and set to true or false so we don't need to trace this again
-                
+
                 // Define trace directions (cardinal + ordinal directions)
                 trace_dirs = [
 
@@ -314,7 +314,7 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
                     job.trace_failed = true
                     FailedJobs.append( job )
                 }
-        
+
                 // set TRACE_FUNCS very low ( < 12 ) to avoid crashing before uncommenting this
                 // use host_timescale to compensate for the slowdown
 
@@ -418,6 +418,12 @@ function VSWeather::SpawnParticles( area, info ) {
 
     local ent = SpawnEntityFromTable( "info_particle_system", kvs )
 
+    // kvs.id <- GetPropInt( ent, "m_iHammerID" )
+    kvs.classname <- "info_particle_system"
+
+    if ( !("angles" in kvs) )
+        kvs.angles <- "0 0 0"
+
     SpawnedParticles.append( kvs )
 
     if ( ent.GetOrigin() != final_origin )
@@ -429,6 +435,37 @@ function VSWeather::SpawnParticles( area, info ) {
     DebugLog.LOG_PRINT( "Spawned particle system: " + particle_name + " at " + final_origin.ToKVString() + "(Count: " + particle_count + ")", "DEBUG" )
 
     particle_count++
+}
+
+function VSWeather::EntityKVToInstanceString( kvs ) {
+
+    local string = "\nentity\n{"
+
+    foreach( key, value in kvs ) {
+
+        switch ( typeof value ) {
+
+            case "bool":
+                value = value ? "1" : "0"
+            break
+
+            case "Vector":
+            case "QAngle":
+                value = value.ToKVString()
+            break
+        }
+
+    string += format( @"
+    ""%s"" ""%s""", key.tostring(), value.tostring() )
+    }
+    string += @"
+    editor
+    {
+        ""color"" ""0 128 255""
+        ""visgroupshown"" ""1""
+        ""visgroupautoshown"" ""1""
+    }"
+    return string + "\n}"
 }
 
 // Start the generator chain
@@ -477,7 +514,104 @@ function VSWeather::Start() {
 function VSWeather::ChatCommands::trace( params, args ) { Start() }
 function VSWeather::ChatCommands::start( params, args ) { trace( params, args ) }
 function VSWeather::ChatCommands::edit( params, args ) {}
-function VSWeather::ChatCommands::save( params, args ) {}
+function VSWeather::ChatCommands::save( params, args ) {
+
+    local string = ""
+
+    if ( !args.len() || args[0] == "instance" ) {
+
+        foreach( kvs in SpawnedParticles )
+            string += EntityKVToInstanceString( kvs )
+
+        // slice off the first newline, add another newline for null character
+        StringToFile( CONFIG.SAVE_FILENAME + ".vmf", string.slice(1) + "\n" )
+
+        DebugLog.LOG_PRINT( "Saved " + SpawnedParticles.len() + " particle systems to instance file: tf/scriptdata/" + CONFIG.SAVE_FILENAME + ".vmf", "INFO" )
+        DebugLog.LOG_PRINT( "\n1. Move this file to your tf/maps/instances/ folder\n2. Spawn a func_instance at 0 0 0 in your map\n3. Set the VMF filename to this file", "INFO")
+        DebugLog.LOG_PRINT( "You can now collapse the instance into the main map, if you prefer", "INFO" )
+        return
+    }
+
+    else if ( args[0] == "script" ) {
+
+string = @"// HOW TO USE:
+
+// 1. Move this file from tf/scriptdata/ to tf/scripts/vscripts/
+// 2. add this entire line (quotes brackets etc) to your server cfg:
+
+// script try { IncludeScript( GetMapName() + ""_weather_particles.nut"" ) } catch ( e ) { printl( ""[VSWEATHER]: "" + e ) }
+
+// Your server will now run any script files named <mapname>_weather_particles.nut on map load.
+// Only need to do this step once.
+
+"
+        string += "::VS_WEATHER_PARTICLES <- ["
+
+        foreach( kvs in SpawnedParticles ) {
+
+            string += "\n\t{"
+            foreach( key, value in kvs ) {
+
+                switch ( typeof value ) {
+
+                    case "bool":
+                        value = value ? "1" : "0"
+                    break
+
+                    case "Vector":
+                    case "QAngle":
+                        value = value.ToKVString()
+                    break
+                }
+
+                string += "\n\t\t\"" + key + "\" : \"" + value + "\""
+            }
+            string += "\n\t},"
+        }
+
+string += @"
+]
+
+function ___VSWEATHER_PARTICLE_SPAWN() {
+
+    foreach ( kv in VS_WEATHER_PARTICLES )
+        SpawnEntityFromTable( kv.classname, kv );
+}
+
+// spawn particles immediately on script load
+___VSWEATHER_PARTICLE_SPAWN()
+printl( ""[VSWEATHER] spawned "" + VS_WEATHER_PARTICLES.len() + "" weather particles"" )
+
+// respawn on round restarts
+::___VSWEATHER_PARTICLE_RESPAWN <- {
+
+    function OnGameEvent_teamplay_restart_round( _ ) {
+
+        if ( IsMannVsMachineMode() ) return
+
+        ___VSWEATHER_PARTICLE_SPAWN()
+    }
+    function OnGameEvent_teamplay_round_start( _ ) {
+
+        if ( !IsMannVsMachineMode() ) return
+
+        ___VSWEATHER_PARTICLE_SPAWN()
+    }
+}
+__CollectGameEventCallbacks( ___VSWEATHER_PARTICLE_RESPAWN )
+
+// ignore this, or delete it, up to you!
+"
+
+        if ( CONFIG.SAVE_FILENAME != MAPNAME + "_weather_particles.nut" )
+            DebugLog.LOG_PRINT( "SAVE_FILENAME is ignored for script saving!", "WARNING" )
+
+        StringToFile( MAPNAME + "_weather_particles.nut", string )
+        DebugLog.LOG_PRINT( "Saved " + SpawnedParticles.len() + " particle systems to script file: tf/scripts/vscripts/" + MAPNAME + "_weather_particles.nut", "INFO" )
+        return
+    }
+
+}
 
 function VSWeather::ChatCommands::reset( params, args ) {
 

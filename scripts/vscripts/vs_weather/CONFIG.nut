@@ -1,4 +1,6 @@
 // This is where you configure your weather system
+// WARNING: DO NOT DELETE KEYS FROM THIS FILE, YOU WILL BREAK THINGS!
+// there are no defaults if the expected config keys don't exist!
 VSWeather.CONFIG <- {
 
     /******************
@@ -47,19 +49,22 @@ VSWeather.CONFIG <- {
      **************************************************************/
     NAV_SUBDIVIDE_LARGE_AREA_THRESHOLD = 200*200
 
+    SAVE_FILENAME = MAPNAME + "_weather_particles"
+
+
+    /*****************************************************************************
+    * define particle systems by name here                                       *
+    * TODO: While there is code to support multiple particle systems...          *
+    * it doesn't work correctly.  Only one particle system is supported for now. *
+    ******************************************************************************/
     WeatherSystems = {
 
-        /******************************************************************************
-         * define particle systems by name here                                       *
-         * TODO: While there is code to support multiple particle systems...          *
-         * it doesn't work correctly.  Only one particle system is supported for now. *
-         ******************************************************************************/
         env_rain_002_256 = {
 
             /******************************************************************************
              * "safe" radius of this effect before it will clip into surrounding geometry *
              ******************************************************************************/
-            radius = 256
+            radius = 260
 
             /**********************************************************************************
              * distance from the particle system origin -> the point where the particle stops *
