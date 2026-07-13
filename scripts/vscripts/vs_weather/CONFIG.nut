@@ -73,6 +73,12 @@ VSWeather.CONFIG <- {
      ********************************************************************************/
     MAX_WEATHER_SYSTEMS = 300
 
+    /*********************************************************************************
+     * If true, append the associated nav area ID/entity hammer ID to the targetname *
+     * Only works for custom targetnames, see above note in WeatherSystems           *
+     *********************************************************************************/
+    UNIQUE_TARGETNAMES = false
+
     /*******************************************************************************************
      * Ignore all displacements (terrain)                                                      *
      *                                                                                         *

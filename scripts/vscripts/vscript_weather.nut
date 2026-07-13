@@ -400,14 +400,20 @@ function VSWeather::SpawnParticles( area, info ) {
 
     if ( !("targetname" in kvs) )
         kvs.targetname <- "__vs_weather_" + particle_name + "_" + area_id
-    else
+    else if ( CONFIG.UNIQUE_TARGETNAMES )
         kvs.targetname = kvs.targetname + "_" + area_id
 
     // "vscripts" kv w/ invalid filename will still set up the script scope on spawn
-    // without needing to call .ValidateScriptScope() after
+    // without needing to call .ValidateScriptScope() later
     // cannot be an empty string or null, just use a space
-    if ( !("vscripts" in kvs) )
-        kvs.vscripts <- " "
+    local defaults = {
+        angles   = "0 0 0"
+        vscripts = " "
+    }
+
+    foreach ( kv, def in defaults )
+        if ( !(kv in kvs) )
+            kvs.kv <- def
 
     local final_origin = Vector( origin_pre_offset.x, origin_pre_offset.y, origin_pre_offset.z + cfg.travel_distance )
 
@@ -430,9 +436,6 @@ function VSWeather::SpawnParticles( area, info ) {
 
     // kvs.id <- GetPropInt( ent, "m_iHammerID" )
     kvs.classname <- "info_particle_system"
-
-    if ( !("angles" in kvs) )
-        kvs.angles <- "0 0 0"
 
     SpawnedParticles.append( kvs )
 
