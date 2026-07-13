@@ -67,7 +67,7 @@ function VSWeather::InitNav() {
     AllAreas = important_ents.extend( AllAreas.values() ).filter( @( _, area ) area.IsValid() )
 }
 
-// Initialize spoke trace data for each area
+// Pre-check nav areas for skybox visibility and distance
 function VSWeather::SetupAreaParticleInfo( i, area ) {
 
     // NOTE: this array is a mix of CBaseEntity derived ents AND CNavAreas.
@@ -81,6 +81,7 @@ function VSWeather::SetupAreaParticleInfo( i, area ) {
 
         start   = area_center
         end     = area_center + Vector( 0, 0, INT_MAX )
+        mask    = CONFIG.TRACE_MASK
         ignore  = ignore
         allsolid   = false
         startsolid = false
@@ -289,12 +290,15 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
                 // better than raining inside though, right?
                 else if ( info.status != color_valid && trace_result > info.last_result * CONFIG.TRACE_FORGIVENESS ) {
 
-                    if ( (CONFIG.IGNORE_DISPLACEMENTS || CONFIG.IGNORE_PROPS) ) {
+                    local do_expensive_trace = CONFIG.IGNORE_DISPLACEMENTS || CONFIG.IGNORE_PROPS || CONFIG.IGNORE_TRANSLUCENT || trace_full.surface_name in ( CONFIG.IGNORE_THESE_TEXTURES || {} )
+
+                    if ( do_expensive_trace ) {
 
                         local trace_full = {
 
                             start   = job.trace_start
                             end     = spoke_end
+                            mask    = CONFIG.TRACE_MASK
                             ignore  = GetListenServerHost()
                             allsolid   = false
                             startsolid = false
@@ -302,10 +306,16 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
 
                         TraceLineEx( trace_full )
 
-                        if ( trace_full.surface_name == "**displacement**" && CONFIG.IGNORE_DISPLACEMENTS )
+                        if ( CONFIG.IGNORE_DISPLACEMENTS && trace_full.surface_name == "**displacement**" )
                             continue
 
-                        else if ( ( trace_full.surface_name == "**studiomdl**" || trace_full.surface_name == "**empty**" ) && CONFIG.IGNORE_PROPS )
+                        else if ( CONFIG.IGNORE_PROPS && ( trace_full.surface_name == "**studiomdl**" || trace_full.surface_name == "**empty**" ) )
+                            continue
+
+                        else if ( trace_full.surface_name in ( CONFIG.IGNORE_THESE_TEXTURES || {} ) )
+                            continue
+
+                        if ( CONFIG.IGNORE_TRANSLUCENT && trace_full.surface_flags & SURF_TRANS )
                             continue
                     }
 
@@ -439,7 +449,7 @@ function VSWeather::SpawnParticles( area, info ) {
 
 function VSWeather::EntityKVToInstanceString( kvs ) {
 
-    local string = "\nentity\n{"
+    local output = "\nentity\n{"
 
     foreach( key, value in kvs ) {
 
@@ -455,17 +465,17 @@ function VSWeather::EntityKVToInstanceString( kvs ) {
             break
         }
 
-    string += format( @"
+    output += format( @"
     ""%s"" ""%s""", key.tostring(), value.tostring() )
     }
-    string += @"
+    output += @"
     editor
     {
         ""color"" ""0 128 255""
         ""visgroupshown"" ""1""
         ""visgroupautoshown"" ""1""
     }"
-    return string + "\n}"
+    return output + "\n}"
 }
 
 // Start the generator chain
@@ -516,15 +526,15 @@ function VSWeather::ChatCommands::start( params, args ) { trace( params, args ) 
 function VSWeather::ChatCommands::edit( params, args ) {}
 function VSWeather::ChatCommands::save( params, args ) {
 
-    local string = ""
+    local output = ""
 
     if ( !args.len() || args[0] == "instance" ) {
 
         foreach( kvs in SpawnedParticles )
-            string += EntityKVToInstanceString( kvs )
+            output += EntityKVToInstanceString( kvs )
 
         // slice off the first newline, add another newline for null character
-        StringToFile( CONFIG.SAVE_FILENAME + ".vmf", string.slice(1) + "\n" )
+        StringToFile( CONFIG.SAVE_FILENAME + ".vmf", output.slice(1) + "\n" )
 
         DebugLog.LOG_PRINT( "Saved " + SpawnedParticles.len() + " particle systems to instance file: tf/scriptdata/" + CONFIG.SAVE_FILENAME + ".vmf", "INFO" )
         DebugLog.LOG_PRINT( "\n1. Move this file to your tf/maps/instances/ folder\n2. Spawn a func_instance at 0 0 0 in your map\n3. Set the VMF filename to this file", "INFO")
@@ -534,7 +544,7 @@ function VSWeather::ChatCommands::save( params, args ) {
 
     else if ( args[0] == "script" ) {
 
-string = @"// HOW TO USE:
+output = @"// HOW TO USE:
 
 // 1. Move this file from tf/scriptdata/ to tf/scripts/vscripts/
 // 2. add this entire line (quotes brackets etc) to your server cfg:
@@ -545,11 +555,11 @@ string = @"// HOW TO USE:
 // Only need to do this step once.
 
 "
-        string += "::VS_WEATHER_PARTICLES <- ["
+        output += "::VS_WEATHER_PARTICLES <- ["
 
         foreach( kvs in SpawnedParticles ) {
 
-            string += "\n\t{"
+            output += "\n\t{"
             foreach( key, value in kvs ) {
 
                 switch ( typeof value ) {
@@ -564,12 +574,12 @@ string = @"// HOW TO USE:
                     break
                 }
 
-                string += "\n\t\t\"" + key + "\" : \"" + value + "\""
+                output += "\n\t\t\"" + key + "\" : \"" + value + "\""
             }
-            string += "\n\t},"
+            output += "\n\t},"
         }
 
-string += @"
+output += @"
 ]
 
 function ___VSWEATHER_PARTICLE_SPAWN() {
@@ -606,7 +616,7 @@ __CollectGameEventCallbacks( ___VSWEATHER_PARTICLE_RESPAWN )
         if ( CONFIG.SAVE_FILENAME != MAPNAME + "_weather_particles.nut" )
             DebugLog.LOG_PRINT( "SAVE_FILENAME is ignored for script saving!", "WARNING" )
 
-        StringToFile( MAPNAME + "_weather_particles.nut", string )
+        StringToFile( MAPNAME + "_weather_particles.nut", output )
         DebugLog.LOG_PRINT( "Saved " + SpawnedParticles.len() + " particle systems to script file: tf/scripts/vscripts/" + MAPNAME + "_weather_particles.nut", "INFO" )
         return
     }
@@ -634,24 +644,30 @@ function VSWeather::ChatCommands::nav( params, args ) {
     if ( !args.len() )
         return DebugLog.LOG_PRINT( "Usage: .wnav <create|cleanup|subdivide|disconnect>", "INFO" )
 
-    switch ( args[0] ) {
+    local cmds = split( args[0], "|", true )
 
-        case "create":
-            NavUtils.CreateNav()
-            break
-        case "cleanup":
-            NavUtils.SubdivideLargeAreas()
-            NavUtils.DisconnectUnreachableAreas()
-            break
-        case "subdivide":
-            NavUtils.SubdivideLargeAreas()
-            break
-        case "disconnect":
-            NavUtils.DisconnectUnreachableAreas()
-            break
-        default:
-            DebugLog.LOG_PRINT( "Usage: .wnav <create|cleanup|subdivide|disconnect>", "INFO" )
-            break
+    // TODO: yield for each cmd
+    foreach( cmd in cmds ) {
+
+        switch ( cmd ) {
+
+            case "create":
+                NavUtils.CreateNav()
+                break
+            case "cleanup":
+                NavUtils.SubdivideLargeAreas()
+                NavUtils.DisconnectUnreachableAreas()
+                break
+            case "subdivide":
+                NavUtils.SubdivideLargeAreas()
+                break
+            case "disconnect":
+                NavUtils.DisconnectUnreachableAreas()
+                break
+            default:
+                DebugLog.LOG_PRINT( "Usage: .wnav <create|cleanup|subdivide|disconnect>", "INFO" )
+                break
+        }
     }
 }
 
