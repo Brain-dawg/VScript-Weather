@@ -6,7 +6,7 @@ if ( "LOG_DEBUG" in ROOT && LOG_DEBUG.find( "[VS WEATHER") )
 ::ROOT  <- getroottable()
 ::CONST <- getconsttable()
 
-::PLAYER <- GetListenServerHost() || PlayerInstanceFromIndex( 1 )
+::LOCALPLAYER <- GetListenServerHost() || PlayerInstanceFromIndex( 1 )
 
 // I do not remember why this is here,
 // CONST.key <- value is already evaluated as expected iirc.

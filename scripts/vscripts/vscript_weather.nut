@@ -22,6 +22,7 @@ VSWeather.AllAreas   <- {}
 VSWeather.particle_count <- 0
 VSWeather.weather_complete <- false
 VSWeather.weather_editing  <- false
+VSWeather.do_expensive_trace <- VSWeather.CONFIG.IGNORE_DISPLACEMENTS || VSWeather.CONFIG.IGNORE_PROPS || VSWeather.CONFIG.IGNORE_TRANSLUCENT || (VSWeather.CONFIG.IGNORE_THESE_TEXTURES || {}).len()
 VSWeather.ValidAreasForParticle <- {}
 VSWeather.TraceJobs    <- []
 VSWeather.FailedJobs   <- []
@@ -76,7 +77,7 @@ function VSWeather::SetupAreaParticleInfo( i, area ) {
 
     local area_center = area.GetCenter()
 
-    local ignore = area instanceof CBaseEntity ? area : GetListenServerHost()
+    local ignore = area instanceof CBaseEntity ? area : LOCALPLAYER
     local trace_full = {
 
         start   = area_center
@@ -99,7 +100,7 @@ function VSWeather::SetupAreaParticleInfo( i, area ) {
                 particle_info[ area ] <- {
 
                     origin_override = Vector(),
-                    // offset trace start position down by the fraction of the travel distance that is in the skybox
+                    // offset trace start position down by the fraction of the travel distance that is in the skybox.
                     start_in_skybox = TraceLine( area_center, area_center + Vector( 0, 0, CONFIG.WeatherSystems[ particle_name ].travel_distance ), ignore )
                 }
             }
@@ -260,7 +261,7 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
                     break
 
                 local spoke_end = Vector( job.trace_start.x + dir.x * job.cfg.radius, job.trace_start.y + dir.y * job.cfg.radius, job.trace_start.z )
-                local trace_result = TraceLine( job.trace_start, spoke_end, GetListenServerHost() ) + TraceLine( spoke_end, job.trace_start, GetListenServerHost() )
+                local trace_result = TraceLine( job.trace_start, spoke_end, LOCALPLAYER ) + TraceLine( spoke_end, job.trace_start, LOCALPLAYER )
 
                 // this trace hit a surface
                 // traces that progressively get smaller usually mean we're hitting a rock or something on the ground
@@ -271,6 +272,38 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
                         // DebugLog.LOG_PRINT( format( "TRACING %s: %s <-> %s -> %0.2f", ""+job.area, job.trace_start.ToKVString(), spoke_end.ToKVString(), trace_result ), "DEBUG" );
                         // status = color_small
                     // }
+
+                    if ( do_expensive_trace ) {
+
+                        local trace_full = {
+
+                            start   = job.trace_start
+                            end     = spoke_end
+                            mask    = CONFIG.TRACE_MASK
+                            ignore  = LOCALPLAYER
+                            allsolid   = false
+                            startsolid = false
+                        }
+
+                        TraceLineEx( trace_full )
+
+                        local surface_name = trace_full.surface_name
+
+                        if ( surface_name[0] == '*' ) {
+
+                            if ( CONFIG.IGNORE_DISPLACEMENTS && surface_name == "**displacement**" )
+                                continue
+
+                            else if ( CONFIG.IGNORE_PROPS && ( surface_name == "**studiomdl**" || surface_name == "**empty**" ) )
+                                continue
+                        }
+
+                        if ( surface_name in CONFIG.IGNORE_THESE_TEXTURES && CONFIG.IGNORE_THESE_TEXTURES[surface_name] )
+                            continue
+
+                        if ( CONFIG.IGNORE_TRANSLUCENT && trace_full.surface_flags & SURF_TRANS )
+                            continue
+                    }
 
                     if ( info.status != color_warn ) {
 
@@ -289,35 +322,6 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
                 // TODO: this alone causes false-negatives, leaving "dead spots" with no rain
                 // better than raining inside though, right?
                 else if ( info.status != color_valid && trace_result > info.last_result * CONFIG.TRACE_FORGIVENESS ) {
-
-                    local do_expensive_trace = CONFIG.IGNORE_DISPLACEMENTS || CONFIG.IGNORE_PROPS || CONFIG.IGNORE_TRANSLUCENT || trace_full.surface_name in ( CONFIG.IGNORE_THESE_TEXTURES || {} )
-
-                    if ( do_expensive_trace ) {
-
-                        local trace_full = {
-
-                            start   = job.trace_start
-                            end     = spoke_end
-                            mask    = CONFIG.TRACE_MASK
-                            ignore  = GetListenServerHost()
-                            allsolid   = false
-                            startsolid = false
-                        }
-
-                        TraceLineEx( trace_full )
-
-                        if ( CONFIG.IGNORE_DISPLACEMENTS && trace_full.surface_name == "**displacement**" )
-                            continue
-
-                        else if ( CONFIG.IGNORE_PROPS && ( trace_full.surface_name == "**studiomdl**" || trace_full.surface_name == "**empty**" ) )
-                            continue
-
-                        else if ( trace_full.surface_name in ( CONFIG.IGNORE_THESE_TEXTURES || {} ) )
-                            continue
-
-                        if ( CONFIG.IGNORE_TRANSLUCENT && trace_full.surface_flags & SURF_TRANS )
-                            continue
-                    }
 
                     info.status = color_danger
                     job.completed = true

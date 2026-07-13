@@ -18,7 +18,8 @@ VSWeather.CONFIG <- {
 
             /******************************************************************************
              * "safe" radius of this effect before it will clip into surrounding geometry *
-             ******************************************************************************/
+             * despite the name, this will clip a little bit in a 256x256 area.           *
+*              ****************************************************************************/
             radius = 260
 
             /**********************************************************************************
@@ -83,7 +84,7 @@ VSWeather.CONFIG <- {
      * Ignore all displacements (terrain)                                                      *
      *                                                                                         *
      * If all underground/indoors sections are closed off by world brushes or static props     *
-     * (e.g. no caves), setting this to true will allow all rain to clip through displacements *
+     * (e.g. no caves), setting this to true will allow rain to clip through all displacements *
      * If your map allows this, this may alleviate some "dead spots" with no rain.             *
      * This will completely break e.g. tc_hydro caves.  Be careful                             *
      *******************************************************************************************/
@@ -100,7 +101,7 @@ VSWeather.CONFIG <- {
     /****************************************************************************************
      * Ignore all textures with $translucent 1 or $alpha 1.  Does not apply to $alphatest 1 *
      *                                                                                      *
-     * Only use this if your map has e.g. metal fencing and no glass roofs/windows.         *
+     * Only use this if your map has e.g. lots of metal fencing and no glass roofs/windows. *
      ****************************************************************************************/
     IGNORE_TRANSLUCENT = false
 

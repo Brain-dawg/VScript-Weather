@@ -14,16 +14,16 @@ function VSWeather::NavUtils::SnapToAreaAndRunCommand( pos, command ) {
         pos = pos.GetCenter()
 
     // SendToConsole fires asynchronously? set origin/angles in the same command instead
-    // PLAYER.SetAbsOrigin( pos )
-    // PLAYER.SnapEyeAngles( QAngle( 90, 0, 0 ) )
+    // LOCALPLAYER.SetAbsOrigin( pos )
+    // LOCALPLAYER.SnapEyeAngles( QAngle( 90, 0, 0 ) )
 
     // put us in noclip and don't touch any trigger_hurts/etc
-    PLAYER.SetSolid( SOLID_NONE )
-    PLAYER.SetSolidFlags( FSOLID_NOT_SOLID )
-    PLAYER.AddFlag( FL_DONTTOUCH|FL_NOTARGET )
-    PLAYER.SetCollisionGroup( COLLISION_GROUP_DEBRIS )
+    LOCALPLAYER.SetSolid( SOLID_NONE )
+    LOCALPLAYER.SetSolidFlags( FSOLID_NOT_SOLID )
+    LOCALPLAYER.AddFlag( FL_DONTTOUCH|FL_NOTARGET )
+    LOCALPLAYER.SetCollisionGroup( COLLISION_GROUP_DEBRIS )
 
-    PLAYER.SetMoveType( MOVETYPE_NOCLIP, MOVECOLLIDE_DEFAULT )
+    LOCALPLAYER.SetMoveType( MOVETYPE_NOCLIP, MOVECOLLIDE_DEFAULT )
     SendToConsole( "setpos " + pos.ToKVString() + ";setang 90 0 0;" + command )
 }
 
@@ -61,7 +61,7 @@ function VSWeather::NavUtils::SubdivideLargeAreas() {
 
         DebugLog.LOG_PRINT( "Subdividing areas complete!", "INFO" )
         SendToConsole( "nav_save" )
-        PLAYER.ForceRegenerateAndRespawn()
+        LOCALPLAYER.ForceRegenerateAndRespawn()
     }))
 }
 // nav area disconnect: Modified from scripts by Mikusch & ficool2
@@ -172,7 +172,7 @@ function VSWeather::NavUtils::NavGenerator() {
     yield true
 
 
-    AddThinkToEnt( PLAYER, null )
+    AddThinkToEnt( LOCALPLAYER, null )
 }
 
 function VSWeather::NavUtils::CreateNav() {
@@ -194,7 +194,7 @@ function VSWeather::NavUtils::CreateNav() {
     // host_thread_mode changes when nav_generate runs/completes
     SendToConsole( "nav_edit 0;" )
 
-    local scope = PLAYER.GetScriptScope() || (PLAYER.ValidateScriptScope(), PLAYER.GetScriptScope())
+    local scope = LOCALPLAYER.GetScriptScope() || (LOCALPLAYER.ValidateScriptScope(), LOCALPLAYER.GetScriptScope())
 
     local gen = NavGenerator()
 
@@ -205,12 +205,12 @@ function VSWeather::NavUtils::CreateNav() {
 
         // else if ( GetInt( "host_thread_mode" ) )
         StringToFile( "__vsweather_nav_cleanup_and_save", "1" )
-        SetPropString( PLAYER, "m_iszScriptThinkFunction", "" )
+        SetPropString( LOCALPLAYER, "m_iszScriptThinkFunction", "" )
 
         return INT_MAX
     }
     scope.NavThink <- NavThink
-    AddThinkToEnt( PLAYER, "NavThink" )
+    AddThinkToEnt( LOCALPLAYER, "NavThink" )
 }
 
 function CTFNavArea::ComputePortal( to, dir ) {
