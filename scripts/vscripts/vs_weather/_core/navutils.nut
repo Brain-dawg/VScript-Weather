@@ -1,6 +1,4 @@
 VSWeather.NavUtils <- {}
-
-VSWeather.NavUtils.MAX_AREAS_PER_TICK   <- 1000
 VSWeather.NavUtils.last_subdivide_len   <- 0
 
 function VSWeather::NavUtils::GetNavAreasLargerThan( areas, size_threshold = VSWeather.CONFIG.MISC.NAV_SUBDIVIDE_LARGE_AREA_THRESHOLD ) {
@@ -69,7 +67,7 @@ function VSWeather::NavUtils::DisconnectUnreachableAreas() {
 
     local valid_areas = AllAreas.filter( @( _, area ) area.IsValid() && area instanceof CTFNavArea )
 
-    Generators.StartGenerator( Generators.DeferredForEach( valid_areas, MAX_AREAS_PER_TICK, function( _, area ) {
+    Generators.StartGenerator( Generators.DeferredForEach( valid_areas, CONFIG.ITERS_PER_FRAME.NAV_AREAS, function( _, area ) {
 
         if ( !area.IsValid() )
             return
