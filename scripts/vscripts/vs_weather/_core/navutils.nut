@@ -3,7 +3,7 @@ VSWeather.NavUtils <- {}
 VSWeather.NavUtils.MAX_AREAS_PER_TICK   <- 1000
 VSWeather.NavUtils.last_subdivide_len   <- 0
 
-function VSWeather::NavUtils::GetNavAreasLargerThan( areas, size_threshold = VSWeather.CONFIG.NAV_SUBDIVIDE_LARGE_AREA_THRESHOLD ) {
+function VSWeather::NavUtils::GetNavAreasLargerThan( areas, size_threshold = VSWeather.CONFIG.MISC.NAV_SUBDIVIDE_LARGE_AREA_THRESHOLD ) {
 
     return areas.filter( @( _, area ) area.IsValid() && area instanceof CTFNavArea && area.GetSizeX() * area.GetSizeY() > size_threshold )
 }
