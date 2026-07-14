@@ -669,7 +669,7 @@ __CollectGameEventCallbacks( ___VSWEATHER_PARTICLE_RESPAWN )
             DebugLog.LOG_PRINT( "SAVE_FILENAME is ignored for script saving!", "WARNING" )
 
         StringToFile( MAPNAME + "_weather_particles.nut", output )
-        DebugLog.LOG_PRINT( "Saved " + SpawnedParticles.len() + " particle systems to script file: tf/scripts/vscripts/" + MAPNAME + "_weather_particles.nut", "INFO" )
+        DebugLog.LOG_PRINT( "Saved " + SpawnedParticles.len() + " particle systems to script file: tf/scriptdata/" + MAPNAME + "_weather_particles.nut", "INFO" )
         return
     }
 
