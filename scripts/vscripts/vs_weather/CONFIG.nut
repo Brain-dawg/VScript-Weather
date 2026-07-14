@@ -98,7 +98,27 @@ VSWeather.CONFIG <- {
      * TRACE SETTINGS *
      ******************/
 
+    /************************************************************************************************************
+     * WARNING: The following settings will fire TraceLineEx if set to true, rather than simple TraceLine calls *
+     *                                                                                                          *
+     * IGNORE_DISPLACEMENTS = true                                                                              *
+     * IGNORE_PROPS = true                                                                                      *
+     * IGNORE_TRANSLUCENT = true                                                                                *
+     * IGNORE_THESE_TEXTURES = { ... } // putting anything in this table will fire TraceLineEx                  *
+     ************************************************************************************************************/
+
     TRACING = {
+
+        /*************************************************************************************
+         * All four nav corners will be tested for particle placement, as well as the center *
+         * Setting this to true will 4x the amount of traces, meaning 4x the time to finish  *
+         * Most maps will see significantly better results, some will see little difference. *
+         * Takes upwards of a minute on pl_enclosure, you've been warned.                    *
+         *                                                                                   *
+         * BUG: This may trigger SQQuerySuspend on large navs.                               *
+         * If you are having issues with this, try .wnav subdivide instead                   *
+         *************************************************************************************/
+        ALL_NAV_CORNERS_SLOW = false
 
         /*******************************************************************************************
         * Ignore all displacements (terrain)                                                      *
@@ -139,12 +159,12 @@ VSWeather.CONFIG <- {
         ************************************************************/
         IGNORE_THESE_TEXTURES = {
 
-            "moon/moon_floor_grate01": true
-            "moon/moonbase_grate001": true
-            "metal/metalgrate013a": true
-            "egypt/barbed_wire_fence_01": true
-            // supports trailing wildcards for e.g. grate and grate_a
-            "models/props_sunshine/cafe_table001_grate*" : true
+            // "moon/moon_floor_grate01": true
+            // "moon/moonbase_grate001": true
+            // "metal/metalgrate013a": true
+            // "egypt/barbed_wire_fence_01": true
+            // "models/props_sunshine/cafe_table001_grate" : true
+            // "models/props_sunshine/cafe_table001_grate_a" : true
         }
 
         /**********************************************************************************
@@ -171,7 +191,7 @@ VSWeather.CONFIG <- {
         TRACE_FUNCS = 12*128
 
         // number of nav areas to process per frame
-        NAV_AREAS  = 1200
+        NAV_AREAS  = 800
 
         // number of particle systems to spawn per frame
         SPAWN_PARTICLES = 300

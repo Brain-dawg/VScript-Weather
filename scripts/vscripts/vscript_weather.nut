@@ -30,7 +30,7 @@ VSWeather.SpawnedParticles <- []
 VSWeather.Events <- {}
 VSWeather.ChatCommands <- {}
 
-local trace_cfg = CONFIG.TRACING
+local trace_cfg = VSWeather.CONFIG.TRACING
 
 VSWeather.do_expensive_trace <- trace_cfg.IGNORE_DISPLACEMENTS 
                                 || trace_cfg.IGNORE_PROPS 
@@ -38,6 +38,7 @@ VSWeather.do_expensive_trace <- trace_cfg.IGNORE_DISPLACEMENTS
                                 || (trace_cfg.IGNORE_THESE_TEXTURES || {}).len()
 
 
+function VSWeather::collectgarbage() { ::collectgarbage() } 
 function VSWeather::InitNav() {
 
     AllAreas.clear()
@@ -72,7 +73,30 @@ function VSWeather::InitNav() {
     }
 
     // ensure important map entities get iterated over first.
-    AllAreas = important_ents.extend( AllAreas.values() ).filter( @( _, area ) area.IsValid() )
+    AllAreas = important_ents.extend( AllAreas.values() )
+    
+    local corners = array( AllAreas.len() * NUM_CORNERS, null )
+
+    // convert to vectors + area corners
+
+    if ( trace_cfg.ALL_NAV_CORNERS_SLOW ) {
+
+        foreach( i, area in AllAreas ) {
+
+            AllAreas[i] = area.GetCenter()
+
+            if ( !( area instanceof CTFNavArea ) )
+                continue
+
+            for (local j = 0; j < NUM_CORNERS; j++) {
+
+                corners[i * NUM_CORNERS + j] = area.GetCorner( j )
+            }
+        }
+
+        AllAreas = AllAreas.extend( corners.filter( @( _, corner ) corner ) )
+    }
+    
 }
 
 // Pre-check nav areas for skybox visibility and distance
@@ -82,7 +106,7 @@ function VSWeather::SetupAreaParticleInfo( i, area ) {
     // conveniently, GetCenter() is available on both.
     // DO NOT ASSUME THIS IS ONLY NAV AREAS!
 
-    local area_center = area.GetCenter()
+    local area_center = typeof area == "Vector" ? area : area.GetCenter()
 
     local ignore = area instanceof CBaseEntity ? area : LOCALPLAYER
     local trace_full = {
@@ -97,14 +121,14 @@ function VSWeather::SetupAreaParticleInfo( i, area ) {
 
     foreach( particle_name, particle_info in ValidAreasForParticle ) {
 
-        if ( !(area in particle_info) ) {
+        if ( !(area_center in particle_info) ) {
 
             // make sure the sky is visible
             TraceLineEx( trace_full )
 
             if ( trace_full.surface_flags & SURF_SKY ) {
 
-                particle_info[ area ] <- {
+                particle_info[ area_center ] <- {
 
                     origin_override = Vector(),
                     // offset trace start position down by the fraction of the travel distance that is in the skybox.
@@ -171,15 +195,21 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
     //     ]
     // }
 
+    local i = 0
     foreach( particle_name, particle_info in ValidAreasForParticle ) {
 
         local cfg = CONFIG.WeatherSystems[ particle_name ]
 
+        local area_center
+
+        // TODO: does not scale indefinitely with nav area size
+        // hits SQQuerySuspend on large navs with ALL_NAV_CORNERS_SLOW = true
+        // move all this stuff to a generator
         foreach( area, info in particle_info ) {
 
             // trace_job.cfg           = CONFIG.WeatherSystems[ particle_name ]
             // trace_job.area          = area
-            // trace_job.area_name     = area.GetID()
+            // trace_job.area_name     = typeof area == "Vector" ? area.ToKVString() : area.GetCenter().ToKVString()
             // trace_job.trace_end     = area.GetCenter()
             // trace_job.trace_start   = area.GetCenter() + Vector( 0, 0, trace_job.cfg.travel_distance )
             // trace_job.particle_name = particle_name
@@ -187,17 +217,19 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
 
             // TraceJobs.append( trace_job )
 
-            TraceJobs.append({
+            area_center = area instanceof Vector ? area : area.GetCenter()
 
-                area_name     = area instanceof CBaseEntity ? GetPropInt( area, "m_iHammerID" ) : area.GetID()
+            TraceJobs[i] = {
+
+                area_name     = area_center.ToKVString()
                 area          = area
                 particle_name = particle_name
                 particle_info = particle_info
                 completed     = false
                 trace_failed  = false
                 cfg           = cfg
-                trace_start   = area.GetCenter() + Vector( 0, 0, cfg.travel_distance * particle_info[ area ].start_in_skybox )
-                trace_end     = area.GetCenter()
+                trace_start   = area_center + Vector( 0, 0, cfg.travel_distance * particle_info[ area ].start_in_skybox )
+                trace_end     = area_center
                 hit_sky       = null // start it null and set to true or false so we don't need to trace this again
 
                 // Define trace directions (cardinal + ordinal directions)
@@ -221,7 +253,8 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
                     [ Vector(-0.25, 0.25, 0),  { status = color_valid, last_result = 2.0 } ],  // -X +Y
                     [ Vector(0.25, -0.25, 0),  { status = color_valid, last_result = 2.0 } ]   // +X -Y
                 ]
-            })
+            }
+            i++
         }
     }
 
@@ -245,6 +278,9 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
             return
 
         local job = TraceJobs[current_job_index]
+
+        if ( !job )
+            return current_job_index++
 
         if ( job.completed ) {
 
@@ -295,8 +331,8 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
                         TraceLineEx( trace_full )
 
                         local surface_name = trace_full.surface_name
-
                         if ( surface_name[0] == '*' ) {
+                            // print( "\n" + surface_name + " : " + trace_full.surface_flags + " : " + trace_full.surface_props )
 
                             if ( trace_cfg.IGNORE_DISPLACEMENTS && surface_name == "**displacement**" )
                                 continue
@@ -404,10 +440,11 @@ function VSWeather::SpawnParticles( area, info ) {
     Assert( !( "effect_name" in kvs ), _errmsg( particle_name, "effect_name" ) )
 
     local origin_pre_offset = particle_info.origin_override
-    local area_id = area instanceof CBaseEntity ? GetPropInt( area, "m_iHammerID" ) : area.GetID()
+    local area_center = typeof area == "Vector" ? area : area.GetCenter()
+    local area_id = area_center.ToKVString()
 
     if ( !origin_pre_offset.LengthSqr() )
-        origin_pre_offset = area.GetCenter()
+        origin_pre_offset = area_center
 
     if ( !("targetname" in kvs) )
         kvs.targetname <- "__vs_weather_" + particle_name + "_" + area_id
@@ -504,7 +541,7 @@ function VSWeather::Start() {
 
     weather_complete = false
 
-    AllAreas = AllAreas.filter( @( _, area ) area && area.IsValid() )
+    AllAreas = AllAreas.filter( @( _, area ) area && ( typeof area == "Vector" || area.IsValid() ) )
 
     Generators.GeneratorChain([
 
@@ -519,7 +556,8 @@ function VSWeather::Start() {
                     ValidAreasYield, // yields for each iters_per_frame
                     oncomplete       // completion callback (REQUIRED for chaining)
                 )
-            }
+            },
+            @(_) TraceJobs = array( ValidAreasForParticle.len() * AllAreas.len(), null )
         ],
         [
 
@@ -645,6 +683,10 @@ function VSWeather::ChatCommands::reset( params, args ) {
     // TODO: this should be getting cleared out by __vs_weather being killed
     // likely ___CREATE_SCOPE nonsense
     GameEventCallbacks.player_say.clear()
+
+    // probably unnecessary, however this gc sweep can take upwards of a second
+    // I assume it's doing something...
+    EntFire( "__vs_weather", "callscriptfunction", "collectgarbage" )
     EntFire( "__vs_weather*", "Kill" )
     EntFire( "worldspawn", "RunScriptFile", getstackinfos(1).src, 0.1 )
     // SendToConsole( "mp_restartgame_immediate 1;" )

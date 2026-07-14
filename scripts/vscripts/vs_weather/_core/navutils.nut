@@ -3,7 +3,7 @@ VSWeather.NavUtils.last_subdivide_len   <- 0
 
 function VSWeather::NavUtils::GetNavAreasLargerThan( areas, size_threshold = VSWeather.CONFIG.MISC.NAV_SUBDIVIDE_LARGE_AREA_THRESHOLD ) {
 
-    return areas.filter( @( _, area ) area.IsValid() && area instanceof CTFNavArea && area.GetSizeX() * area.GetSizeY() > size_threshold )
+    return areas.filter( @( _, area ) area instanceof CTFNavArea && area.IsValid() && area.GetSizeX() * area.GetSizeY() > size_threshold )
 }
 
 function VSWeather::NavUtils::SnapToAreaAndRunCommand( pos, command ) {
@@ -38,7 +38,7 @@ function VSWeather::NavUtils::SubdivideLargeAreas() {
         i++
 
         if ( area.IsValid() )
-            SnapToAreaAndRunCommand( area.GetCenter(), "nav_subdivide" )
+            SnapToAreaAndRunCommand( typeof area == "Vector" ? area : area.GetCenter(), "nav_subdivide" )
     }, 
     null, // onyield
     function ( _ ) { // oncomplete
@@ -65,7 +65,7 @@ function VSWeather::NavUtils::SubdivideLargeAreas() {
 // nav area disconnect: Modified from scripts by Mikusch & ficool2
 function VSWeather::NavUtils::DisconnectUnreachableAreas() {
 
-    local valid_areas = AllAreas.filter( @( _, area ) area.IsValid() && area instanceof CTFNavArea )
+    local valid_areas = AllAreas.filter( @( _, area ) area instanceof CTFNavArea && area.IsValid() )
 
     Generators.StartGenerator( Generators.DeferredForEach( valid_areas, CONFIG.ITERS_PER_FRAME.NAV_AREAS, function( _, area ) {
 
