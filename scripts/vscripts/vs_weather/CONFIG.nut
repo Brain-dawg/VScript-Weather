@@ -130,9 +130,12 @@ VSWeather.CONFIG <- {
         ***************************************************/
         TRACE_MASK = MASK_OPAQUE|CONTENTS_HITBOX|CONTENTS_WINDOW
         
-        /************************************************************
+        /***********************************************************
         * Ignore certain textures when tracing for weather effects *
-        * Useful for skipping e.g. non-$translucent fences         *
+        * Useful for skipping e.g. brush fences                    *
+        *                                                          *
+        * WARNING: This is extremely limited... Only world brushes *
+        * VScript tracing doesn't support displacements/props      *
         ************************************************************/
         IGNORE_THESE_TEXTURES = {
 
