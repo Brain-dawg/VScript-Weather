@@ -598,7 +598,7 @@ function VSWeather::ChatCommands::save( params, args ) {
 
 output = @"// HOW TO USE:
 
-// 1. Move this file from tf/scriptdata/ to tf/scripts/vscripts/
+// 1. Move this file from tf/scriptdata/ to tf/scripts/vscripts/ on your server
 // 2. add this entire line (quotes brackets etc) to your server cfg:
 
 // script try { IncludeScript( GetMapName() + ""_weather_particles.nut"" ) } catch ( e ) { printl( ""[VSWEATHER]: "" + e ) }
