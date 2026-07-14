@@ -112,7 +112,7 @@ VSWeather.CONFIG <- {
         /*************************************************************************************
          * All four nav corners will be tested for particle placement, as well as the center *
          * Setting this to true will 4x the amount of traces, meaning 4x the time to finish  *
-         * Most maps will see significantly better results, some will see little difference. *
+         * Most maps will see significantly better particle placement though.                *
          * Takes upwards of a minute on pl_enclosure, you've been warned.                    *
          *                                                                                   *
          * BUG: This may trigger SQQuerySuspend on large navs.                               *
