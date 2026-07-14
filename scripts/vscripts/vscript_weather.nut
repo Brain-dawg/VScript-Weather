@@ -22,7 +22,6 @@ VSWeather.AllAreas   <- {}
 VSWeather.particle_count <- 0
 VSWeather.weather_complete <- false
 VSWeather.weather_editing  <- false
-VSWeather.do_expensive_trace <- VSWeather.CONFIG.IGNORE_DISPLACEMENTS || VSWeather.CONFIG.IGNORE_PROPS || VSWeather.CONFIG.IGNORE_TRANSLUCENT || (VSWeather.CONFIG.IGNORE_THESE_TEXTURES || {}).len()
 VSWeather.ValidAreasForParticle <- {}
 VSWeather.TraceJobs    <- []
 VSWeather.FailedJobs   <- []
@@ -30,6 +29,14 @@ VSWeather.SpawnedParticles <- []
 
 VSWeather.Events <- {}
 VSWeather.ChatCommands <- {}
+
+local trace_cfg = CONFIG.TRACING
+
+VSWeather.do_expensive_trace <- trace_cfg.IGNORE_DISPLACEMENTS 
+                                || trace_cfg.IGNORE_PROPS 
+                                || trace_cfg.IGNORE_TRANSLUCENT 
+                                || (trace_cfg.IGNORE_THESE_TEXTURES || {}).len()
+
 
 function VSWeather::InitNav() {
 
@@ -82,7 +89,7 @@ function VSWeather::SetupAreaParticleInfo( i, area ) {
 
         start   = area_center
         end     = area_center + Vector( 0, 0, INT_MAX )
-        mask    = CONFIG.TRACE_MASK
+        mask    = trace_cfg.TRACE_MASK
         ignore  = ignore
         allsolid   = false
         startsolid = false
@@ -279,7 +286,7 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
 
                             start   = job.trace_start
                             end     = spoke_end
-                            mask    = CONFIG.TRACE_MASK
+                            mask    = trace_cfg.TRACE_MASK
                             ignore  = LOCALPLAYER
                             allsolid   = false
                             startsolid = false
@@ -291,17 +298,17 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
 
                         if ( surface_name[0] == '*' ) {
 
-                            if ( CONFIG.IGNORE_DISPLACEMENTS && surface_name == "**displacement**" )
+                            if ( trace_cfg.IGNORE_DISPLACEMENTS && surface_name == "**displacement**" )
                                 continue
 
-                            else if ( CONFIG.IGNORE_PROPS && ( surface_name == "**studiomdl**" || surface_name == "**empty**" ) )
+                            else if ( trace_cfg.IGNORE_PROPS && ( surface_name == "**studiomdl**" || surface_name == "**empty**" ) )
                                 continue
                         }
 
-                        if ( surface_name in CONFIG.IGNORE_THESE_TEXTURES && CONFIG.IGNORE_THESE_TEXTURES[surface_name] )
+                        if ( surface_name in trace_cfg.IGNORE_THESE_TEXTURES && trace_cfg.IGNORE_THESE_TEXTURES[surface_name] )
                             continue
 
-                        if ( CONFIG.IGNORE_TRANSLUCENT && trace_full.surface_flags & SURF_TRANS )
+                        if ( trace_cfg.IGNORE_TRANSLUCENT && trace_full.surface_flags & SURF_TRANS )
                             continue
                     }
 
@@ -321,7 +328,7 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
                 // if so, we've probably entered playable/visible space.
                 // TODO: this alone causes false-negatives, leaving "dead spots" with no rain
                 // better than raining inside though, right?
-                else if ( info.status != color_valid && trace_result > info.last_result * CONFIG.TRACE_FORGIVENESS ) {
+                else if ( info.status != color_valid && trace_result > info.last_result * trace_cfg.TRACE_FORGIVENESS ) {
 
                     info.status = color_danger
                     job.completed = true
@@ -404,7 +411,7 @@ function VSWeather::SpawnParticles( area, info ) {
 
     if ( !("targetname" in kvs) )
         kvs.targetname <- "__vs_weather_" + particle_name + "_" + area_id
-    else if ( CONFIG.UNIQUE_TARGETNAMES )
+    else if ( CONFIG.MISC.UNIQUE_TARGETNAMES )
         kvs.targetname = kvs.targetname + "_" + area_id
 
     // "vscripts" kv w/ invalid filename will still set up the script scope on spawn
@@ -433,7 +440,7 @@ function VSWeather::SpawnParticles( area, info ) {
         return
     }
 
-    if ( particle_count >= CONFIG.MAX_WEATHER_SYSTEMS )
+    if ( particle_count >= CONFIG.MISC.MAX_WEATHER_SYSTEMS )
         return
 
     local ent = SpawnEntityFromTable( "info_particle_system", kvs )
@@ -492,8 +499,8 @@ function VSWeather::Start() {
     for ( local ent = Entities.First(); ent; ent = Entities.Next( ent ) )
         i++
 
-    if ( i + CONFIG.MAX_WEATHER_SYSTEMS > MAX_EDICTS )
-        return DebugLog.LOG_PRINT( format( "Not enough edicts to spawn particles.  %d + %d > %d", i, CONFIG.MAX_WEATHER_SYSTEMS, MAX_EDICTS ), "ERROR" )
+    if ( i + CONFIG.MISC.MAX_WEATHER_SYSTEMS > MAX_EDICTS )
+        return DebugLog.LOG_PRINT( format( "Not enough edicts to spawn particles.  %d + %d > %d", i, CONFIG.MISC.MAX_WEATHER_SYSTEMS, MAX_EDICTS ), "ERROR" )
 
     weather_complete = false
 
@@ -530,7 +537,7 @@ function VSWeather::Start() {
 
 function VSWeather::ChatCommands::trace( params, args ) { Start() }
 function VSWeather::ChatCommands::start( params, args ) { trace( params, args ) }
-function VSWeather::ChatCommands::edit( params, args ) {}
+// function VSWeather::ChatCommands::edit( params, args ) {}
 function VSWeather::ChatCommands::save( params, args ) {
 
     local output = ""
@@ -541,9 +548,9 @@ function VSWeather::ChatCommands::save( params, args ) {
             output += EntityKVToInstanceString( kvs )
 
         // slice off the first newline, add another newline for null character
-        StringToFile( CONFIG.SAVE_FILENAME + ".vmf", output.slice(1) + "\n" )
+        StringToFile( CONFIG.MISC.SAVE_FILENAME + ".vmf", output.slice(1) + "\n" )
 
-        DebugLog.LOG_PRINT( "Saved " + SpawnedParticles.len() + " particle systems to instance file: tf/scriptdata/" + CONFIG.SAVE_FILENAME + ".vmf", "INFO" )
+        DebugLog.LOG_PRINT( "Saved " + SpawnedParticles.len() + " particle systems to instance file: tf/scriptdata/" + CONFIG.MISC.SAVE_FILENAME + ".vmf", "INFO" )
         DebugLog.LOG_PRINT( "\n1. Move this file to your tf/maps/instances/ folder\n2. Spawn a func_instance at 0 0 0 in your map\n3. Set the VMF filename to this file", "INFO")
         DebugLog.LOG_PRINT( "You can now collapse the instance into the main map, if you prefer", "INFO" )
         return
@@ -620,7 +627,7 @@ __CollectGameEventCallbacks( ___VSWEATHER_PARTICLE_RESPAWN )
 // ignore this, or delete it, up to you!
 "
 
-        if ( CONFIG.SAVE_FILENAME != MAPNAME + "_weather_particles.nut" )
+        if ( CONFIG.MISC.SAVE_FILENAME != MAPNAME + "_weather_particles.nut" )
             DebugLog.LOG_PRINT( "SAVE_FILENAME is ignored for script saving!", "WARNING" )
 
         StringToFile( MAPNAME + "_weather_particles.nut", output )
@@ -688,6 +695,16 @@ function VSWeather::ChatCommands::failed( params, args ) {
         local radius = CONFIG.WeatherSystems[ job.particle_name ].radius
         DebugDrawBox( job.trace_end + Vector( 0, 0, CONFIG.WeatherSystems[ job.particle_name ].travel_distance * 0.5 ), Vector( -radius, -radius, -radius ), Vector( radius, radius, radius ), 255, 0, 0, 0, 60.0 )
     }
+}
+
+// HELP COMMAND MUST BE DEFINED LAST!
+function VSWeather::ChatCommands::help( params, args ) {
+
+    local str = ""
+    foreach( cmd, _ in VSWeather.ChatCommands ) {
+        str += ".w" + cmd + "\n"
+    }
+    DebugLog.LOG_PRINT( "Available commands:\n" + str, "INFO" )
 }
 
 function VSWeather::Events::OnGameEvent_player_say( params ) {
