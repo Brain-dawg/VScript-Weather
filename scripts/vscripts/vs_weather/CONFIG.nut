@@ -10,6 +10,10 @@
 // 5b. FOR SERVER OWNERS: type `.wsave script` to save particles to a .nut file
 // 6. for updating the config and re-running, type `.wreload` or `.wreset` in chat, repeat step 4
 
+// if you are having issues with "Script terminated by SQQuerySuspend":
+// - if it happens very early after running `.wstart`, try setting ALL_NAV_CORNERS_SLOW to false
+// - if it happens later, reduce TRACE_FUNCS (bottom of this file)
+
 VSWeather.CONFIG <- {
 
     /*****************************************************************************
@@ -126,11 +130,11 @@ VSWeather.CONFIG <- {
          * BUG: This may trigger SQQuerySuspend on large navs.                               *
          * If you are having issues with this, use .wnav subdivide instead                   *
          *************************************************************************************/
-        ALL_NAV_CORNERS_SLOW = false
+        ALL_NAV_CORNERS_SLOW = true
 
         /**********************************************************************************
         * Adds forgiveness to the trace system                                           *
-        * This is intended to ignore smaller decorations (roof trims, fence roofs, etc)  *
+        * This is intended to ignore smaller decorations (roof trims, railings, etc)     *
         * Higher values = larger objects get ignored.                                    *
         **********************************************************************************/
         TRACE_FORGIVENESS = 1.0
@@ -141,14 +145,12 @@ VSWeather.CONFIG <- {
         ***************************************************/
         TRACE_MASK = MASK_OPAQUE|CONTENTS_HITBOX|CONTENTS_WINDOW|CONTENTS_MONSTER
 
-        /******************************************************************************************
-        * Ignore all displacements (terrain)                                                      *
-        *                                                                                         *
-        * If all underground/indoors sections are closed off by world brushes or static props     *
-        * (e.g. no caves), setting this to true will allow rain to clip through all displacements *
-        * If your map allows this, this may alleviate some "dead spots" with no rain.             *
-        * This will completely break e.g. tc_hydro caves.  Be careful                             *
-        *******************************************************************************************/
+        /******************************************************************************
+        * Ignore all displacements (terrain)                                          *
+        *                                                                             *
+        * If your map allows this, this may alleviate some "dead spots" with no rain. *
+        * This will completely break e.g. tc_hydro caves.  Be careful                 *
+        *******************************************************************************/
         IGNORE_DISPLACEMENTS = false
 
         /*********************************************************************
@@ -159,7 +161,7 @@ VSWeather.CONFIG <- {
         *********************************************************************/
         IGNORE_PROPS = false
 
-        /****************************************************************************************
+        /***************************************************************************************
         * Ignore all textures with $translucent 1 or $alpha 1.  Does not apply to $alphatest 1 *
         *                                                                                      *
         * Only use this if your map has e.g. lots of metal fencing and no glass roofs/windows. *
@@ -187,9 +189,6 @@ VSWeather.CONFIG <- {
         * Ignore certain surface props when tracing                     *
         * Useful if your map only uses e.g. "rock" or "dirt" surfaces   *
         * on displacements/props that can be safely rained through      *
-        *                                                               *
-        * Since IGNORE_THESE_TEXTURES only works on world brushes       *
-        * This can be used to detect certain displacement/prop textures *
         *****************************************************************/
         IGNORE_THESE_SURFACE_PROPS = {
             // "rock": true
@@ -216,14 +215,22 @@ VSWeather.CONFIG <- {
      ************************/
     ITERS_PER_FRAME = {
 
-        // Main loop, AKA the slow part:
-        // number of TraceLine/TraceLineEx/TraceHull function calls per frame (and other expensive things)
-        // change this value until perf warnings are safely between 70-90ms
-        // >100ms will hit SQQuerySuspend
+        /***************************************************************************************************
+         * Main loop, AKA the slow part:                                                                   *
+         * number of TraceLine/TraceLineEx/TraceHull function calls per frame (and other expensive things) *
+         * change this value until perf warnings are safely between 70-90ms                                *
+         * >100ms will hit SQQuerySuspend                                                                  *
+         ***************************************************************************************************/
         TRACE_FUNCS = 1600
-        // number of nav areas to process per frame
+
+        /********************************************
+         * number of nav areas to process per frame *
+         ********************************************/
         NAV_AREAS  = 800
-        // number of particle systems to spawn per frame
+
+        /*************************************************
+         * number of particle systems to spawn per frame *
+         *************************************************/
         SPAWN_PARTICLES = 300
     }
 }

@@ -34,10 +34,6 @@
  *        ... If you use a non-preserved entity, this namespace will only exist for the duration of the current round, and will be deleted when the underlying entity is killed...
  *        ... Search "*s_PreserveEnts[]" in the SDK codebase for a list of preserved entity classnames.
  * 
- *        WARNING: If you are overriding this to "move_rope" or "keyframe_rope" to make it a "real" preserved entity 
- *        ... know that some servers will kill these entities indiscriminately to save edicts...
- *        ... we use "entity_saucer" because it is a more obscure entity that server owners will likely forget about and not kill it.
- * 
  *        WARNING: This is not a general purpose entity spawner! the underlying entity only exists as a script scope bucket to dump our code into.
  *
  * @param {boolean} [table_auto_delegate]
