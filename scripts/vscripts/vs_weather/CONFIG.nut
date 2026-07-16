@@ -1,18 +1,20 @@
-// WARNING: DO NOT DELETE KEYS FROM THIS FILE, YOU WILL BREAK THINGS!
-// there are no defaults if the expected config keys don't exist!
-
-// Script Usage:
-// 1. add your particle systems to the WeatherSystems table (replace the example particle).  Configure other settings below (if needed).
-// 2. run `script_execute vscript_weather` in console to load the script in-game
-// 3. If your map has no navmesh, type `.wnav create`, repeat step 2 on map reload, then type `.wnav cleanup`
-// 4. type `.wstart` to trace the map and spawn particles
-// 5a. FOR MAPPERS: type `.wsave instance` to save particles to a .vmf instance
-// 5b. FOR SERVER OWNERS: type `.wsave script` to save particles to a .nut file
-// 6. for updating the config and re-running, type `.wreload` or `.wreset` in chat, repeat step 4
-
-// if you are having issues with "Script terminated by SQQuerySuspend":
-// - if it happens very early after running `.wstart`, try setting ALL_NAV_CORNERS_SLOW to false
-// - if it happens later, reduce TRACE_FUNCS (bottom of this file)
+/*****************************************************************************************************************************************
+ * WARNING: DO NOT DELETE KEYS FROM THIS FILE, YOU WILL BREAK THINGS!                                                                    *
+ * there are no defaults if the expected config keys don't exist!                                                                        *
+ *                                                                                                                                       *
+ * Script Usage:                                                                                                                         *
+ * 1. add your particle systems to the WeatherSystems table (replace the example particle).  Configure other settings below (if needed). *
+ * 2. run `script_execute vscript_weather` in console to load the script in-game                                                         *
+ * 3. If your map has no navmesh, type `.wnav create`, repeat step 2 on map reload, then type `.wnav cleanup`                            *
+ * 4. type `.wstart` to trace the map and spawn particles                                                                                *
+ * 5a. FOR MAPPERS: type `.wsave instance` to save particles to a .vmf instance                                                          *
+ * 5b. FOR SERVER OWNERS: type `.wsave script` to save particles to a .nut file                                                          *
+ * 6. for updating the config and re-running, type `.wreload` or `.wreset` in chat, repeat step 4                                        *
+ *                                                                                                                                       *
+ * if you are having issues with "Script terminated by SQQuerySuspend":                                                                  *
+ * - if it happens very early after running `.wstart`, try setting ALL_NAV_CORNERS_SLOW to false                                         *
+ * - if it happens later, reduce TRACE_FUNCS (bottom of this file)                                                                       *
+ *****************************************************************************************************************************************/
 
 VSWeather.CONFIG <- {
 
@@ -128,11 +130,11 @@ VSWeather.CONFIG <- {
          * Takes upwards of a minute on pl_enclosure, you've been warned.                    *
          *                                                                                   *
          * BUG: This may trigger SQQuerySuspend on large navs.                               *
-         * If you are having issues with this, use .wnav subdivide instead                   *
+         * If you are having issues with this, set to false and use .wnav subdivide instead  *
          *************************************************************************************/
         ALL_NAV_CORNERS_SLOW = true
 
-        /**********************************************************************************
+        /*********************************************************************************
         * Adds forgiveness to the trace system                                           *
         * This is intended to ignore smaller decorations (roof trims, railings, etc)     *
         * Higher values = larger objects get ignored.                                    *
@@ -181,8 +183,6 @@ VSWeather.CONFIG <- {
             // "moon/moonbase_grate001": true
             // "metal/metalgrate013a": true
             // "egypt/barbed_wire_fence_01": true
-            // "models/props_sunshine/cafe_table001_grate" : true
-            // "models/props_sunshine/cafe_table001_grate_a" : true
         }
 
        /*****************************************************************
