@@ -1,3 +1,7 @@
+// UNFINISHED
+// this was an experiment to recreate CBaseEntity entirely in vscript
+// it was not a good idea
+
 class CBaseScriptEntity {
 
     self  = null

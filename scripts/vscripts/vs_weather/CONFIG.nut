@@ -1,6 +1,15 @@
-// This is where you configure your weather system
 // WARNING: DO NOT DELETE KEYS FROM THIS FILE, YOU WILL BREAK THINGS!
 // there are no defaults if the expected config keys don't exist!
+
+// Script Usage:
+// 1. add your particle systems to the WeatherSystems table (replace the example particle).  Configure other settings below (if needed).
+// 2. run `script_execute vscript_weather` in console to load the script in-game
+// 3. If your map has no navmesh, type `.wnav create`, repeat step 2 on map reload, then type `.wnav cleanup`
+// 4. type `.wstart` to trace the map and spawn particles
+// 5a. FOR MAPPERS: type `.wsave instance` to save particles to a .vmf instance
+// 5b. FOR SERVER OWNERS: type `.wsave script` to save particles to a .nut file
+// 6. for updating the config and re-running, type `.wreload` or `.wreset` in chat, repeat step 4
+
 VSWeather.CONFIG <- {
 
     /*****************************************************************************
@@ -10,12 +19,19 @@ VSWeather.CONFIG <- {
     ******************************************************************************/
     WeatherSystems = {
 
+        // example particle system
         env_rain_002_256 = {
 
             /******************************************************************************
              * "safe" radius of this effect before it will clip into surrounding geometry *
              ******************************************************************************/
-            radius = 260
+            radius = 256
+
+            /*********************************************************************
+             * multiplier for the radius check for nearby particles              *
+             * particles spawning too far apart? try setting this to <= 0.85     *
+             *********************************************************************/
+            overlap_mult = 0.8
 
             /**********************************************************************************
              * distance from the particle system origin -> the point where the particle stops *
@@ -29,11 +45,10 @@ VSWeather.CONFIG <- {
              **********************************************************************************/
             keyvalues = {
 
-                /************************************************************
-                 * if this is not set, targetname will be set to:           *
-                 * "__vs_weather_<particle name>_<area id>".                *
-                 * <area id> is the nav area ID associated with this effect *
-                 ************************************************************/
+                /**************************************************
+                 * if this is not set, targetname will be set to: *
+                 * "__vs_weather_<particle name>_<origin xyz>".   *
+                 **************************************************/
                 // targetname      = "my_rain_test"
 
                 /************************************
@@ -48,16 +63,6 @@ VSWeather.CONFIG <- {
                 flag_as_weather = true
             }
         }
-        // env_sandstorm_002_angry = {
-
-        //     radius = 300
-        //     travel_distance = 650
-        //     keyvalues = {
-        //         angles          = QAngle( 45, 180, 0 )
-        //         start_active    = true
-        //         flag_as_weather = true
-        //     }
-        // }
     }
 
     /******************
@@ -75,13 +80,13 @@ VSWeather.CONFIG <- {
         ********************************************************************************/
         MAX_WEATHER_SYSTEMS = 300
 
-        /*********************************************************************************
-        * If true, append the associated nav area ID/entity hammer ID to the targetname *
-        * Only works for custom targetnames, see above note in WeatherSystems           *
-        *********************************************************************************/
+        /****************************************************************************
+        * If true, append the xyz location of the particle system to the targetname *
+        * Only works for custom targetnames, see targetname note in WeatherSystems  *
+        *****************************************************************************/
         UNIQUE_TARGETNAMES = false
 
-        /**************************************************************
+        /*************************************************************
         * If a nav's total area size is larger than this value in HU *
         * the navmesh helpers for subdividing will run on it.        *
         **************************************************************/
@@ -93,18 +98,21 @@ VSWeather.CONFIG <- {
         **************************************************************/
         SAVE_FILENAME = MAPNAME + "_weather_particles"
     }
-    
+
     /******************
      * TRACE SETTINGS *
      ******************/
 
     /************************************************************************************************************
      * WARNING: The following settings will fire TraceLineEx if set to true, rather than simple TraceLine calls *
+     * This will slow down the tracing process significantly, reduce TRACE_FUNCS to compensate.                 *
      *                                                                                                          *
      * IGNORE_DISPLACEMENTS = true                                                                              *
      * IGNORE_PROPS = true                                                                                      *
      * IGNORE_TRANSLUCENT = true                                                                                *
      * IGNORE_THESE_TEXTURES = { ... } // putting anything in this table will fire TraceLineEx                  *
+     * IGNORE_THESE_SURFACE_PROPS = { ... } // putting anything in this table will fire TraceLineEx             *
+     * AVOID_THESE_ENTS = { ... } // putting anything in this table will fire TraceLineEx                       *
      ************************************************************************************************************/
 
     TRACING = {
@@ -116,11 +124,24 @@ VSWeather.CONFIG <- {
          * Takes upwards of a minute on pl_enclosure, you've been warned.                    *
          *                                                                                   *
          * BUG: This may trigger SQQuerySuspend on large navs.                               *
-         * If you are having issues with this, try .wnav subdivide instead                   *
+         * If you are having issues with this, use .wnav subdivide instead                   *
          *************************************************************************************/
         ALL_NAV_CORNERS_SLOW = false
 
-        /*******************************************************************************************
+        /**********************************************************************************
+        * Adds forgiveness to the trace system                                           *
+        * This is intended to ignore smaller decorations (roof trims, fence roofs, etc)  *
+        * Higher values = larger objects get ignored.                                    *
+        **********************************************************************************/
+        TRACE_FORGIVENESS = 1.0
+
+        /**************************************************
+        * Trace mask for what shouldn't be rained through *
+        * See constants.nut for some pre-defined masks.   *
+        ***************************************************/
+        TRACE_MASK = MASK_OPAQUE|CONTENTS_HITBOX|CONTENTS_WINDOW|CONTENTS_MONSTER
+
+        /******************************************************************************************
         * Ignore all displacements (terrain)                                                      *
         *                                                                                         *
         * If all underground/indoors sections are closed off by world brushes or static props     *
@@ -145,20 +166,15 @@ VSWeather.CONFIG <- {
         ****************************************************************************************/
         IGNORE_TRANSLUCENT = false
 
-        /***************************************************
-        * Trace mask for what shouldn't be rained through *
-        ***************************************************/
-        TRACE_MASK = MASK_OPAQUE|CONTENTS_HITBOX|CONTENTS_WINDOW
-        
         /***********************************************************
-        * Ignore certain textures when tracing for weather effects *
+        * Ignore certain textures when tracing                     *
         * Useful for skipping e.g. brush fences                    *
         *                                                          *
         * WARNING: This is extremely limited... Only world brushes *
         * VScript tracing doesn't support displacements/props      *
+        * See IGNORE_THESE_SURFACE_PROPS for a possible workaround *
         ************************************************************/
         IGNORE_THESE_TEXTURES = {
-
             // "moon/moon_floor_grate01": true
             // "moon/moonbase_grate001": true
             // "metal/metalgrate013a": true
@@ -167,32 +183,46 @@ VSWeather.CONFIG <- {
             // "models/props_sunshine/cafe_table001_grate_a" : true
         }
 
-        /**********************************************************************************
-        * Adds forgiveness to the trace system                                           *
-        * This is intended to ignore smaller decorations (roof trims, fence roofs, etc)  *
-        * Higher values = larger objects get ignored.                                    *
-        **********************************************************************************/
-        TRACE_FORGIVENESS = 1.0
+       /*****************************************************************
+        * Ignore certain surface props when tracing                     *
+        * Useful if your map only uses e.g. "rock" or "dirt" surfaces   *
+        * on displacements/props that can be safely rained through      *
+        *                                                               *
+        * Since IGNORE_THESE_TEXTURES only works on world brushes       *
+        * This can be used to detect certain displacement/prop textures *
+        *****************************************************************/
+        IGNORE_THESE_SURFACE_PROPS = {
+            // "rock": true
+            // "dirt": true
+        }
+
+        /***********************************************************************************
+         * WARNING: EXTREMELY SLOW! PROBABLY DON'T USE THIS!                               *
+         *                                                                                 *
+         * Don't spawn particles in this area if it will collide with these named entities *
+         * Also accepts classnames, e.g. "func_breakable"                                  *
+         ***********************************************************************************/
+        AVOID_THESE_ENTS = {
+            
+            // thundermountain finale brushes
+            // "explode_pre_brushes": true
+            // "explode_post_brushes": true
+            // "cap_c3_cart_tip_brush": true
+        }
     }
 
     /************************
      * PERFORMANCE SETTINGS *
      ************************/
-
-    /*****************************************************************************************************
-     * lower these if you have issues hitting SQQuerySuspend or client crashes due to the DebugDraw spam *
-     *****************************************************************************************************/
-
     ITERS_PER_FRAME = {
 
         // Main loop, AKA the slow part:
-        // number of TraceLine/TraceLineEx/TraceHull function calls per frame (and some other expensive things)
-        // this doesn't need to be divisible by 12 but is recommended.
-        TRACE_FUNCS = 12*128
-
+        // number of TraceLine/TraceLineEx/TraceHull function calls per frame (and other expensive things)
+        // change this value until perf warnings are safely between 70-90ms
+        // >100ms will hit SQQuerySuspend
+        TRACE_FUNCS = 1600
         // number of nav areas to process per frame
         NAV_AREAS  = 800
-
         // number of particle systems to spawn per frame
         SPAWN_PARTICLES = 300
     }

@@ -625,9 +625,10 @@ const TFCOLLISION_GROUP_ROCKET_BUT_NOT_WITH_OTHER_ROCKETS 	= 27
 // surface props
 // surface indices are parsed from surfaceproperties.txt
 // the order they are defined is the index order
-enum SURFPROPS {
+enum ESurfaceProps {
 
-	DEFAULT = 0
+	// "default" is a reserved keyword in squirrel
+	DEFAULT
 	solidmetal
 	Metal_Box
 	metal
@@ -710,6 +711,93 @@ enum SURFPROPS {
 	no_decal
 	foliage
 }
+
+// array surface props
+::SURFACEPROPS <- [
+
+	"default"
+	"solidmetal"
+	"Metal_Box"
+	"metal"
+	"metal_bouncy"
+	"slipperymetal"
+	"metalgrate"
+	"metalvent"
+	"metalpanel"
+	"dirt"
+	"mud"
+	"slipperyslime"
+	"grass"
+	"tile"
+	"Wood"
+	"Wood_lowdensity"
+	"Wood_Box"
+	"Wood_Crate"
+	"Wood_Plank"
+	"Wood_Solid"
+	"Wood_Furniture"
+	"Wood_Panel"
+	"water"
+	"slime"
+	"quicksand"
+	"wade"
+	"ladder"
+	"woodladder"
+	"glass"
+	"computer"
+	"concrete"
+	"rock"
+	"porcelain"
+	"boulder"
+	"gravel"
+	"brick"
+	"concrete_block"
+	"chainlink"
+	"chain"
+	"flesh"
+	"bloodyflesh"
+	"alienflesh"
+	"armorflesh"
+	"watermelon"
+	"snow"
+	"ice"
+	"carpet"
+	"plaster"
+	"cardboard"
+	"plastic_barrel"
+	"Plastic_Box"
+	"plastic"
+	"item"
+	"floatingstandable"
+	"sand"
+	"rubber"
+	"wasabiball"
+	"rubbertire"
+	"jeeptire"
+	"slidingrubbertire"
+	"brakingrubbertire"
+	"slidingrubbertire_front"
+	"slidingrubbertire_rear"
+	"glassbottle"
+	"pottery"
+	"grenade"
+	"canister"
+	"metal_barrel"
+	"floating_metal_barrel"
+	"plastic_barrel_buoyant"
+	"roller"
+	"popcan"
+	"paintcan"
+	"paper"
+	"papercup"
+	"ceiling_tile"
+	"weapon"
+	"default_silent"
+	"player"
+	"player_control_clip"
+	"no_decal"
+	"foliage"
+]
 
 // NavMesh related
 const STEP_HEIGHT = 18

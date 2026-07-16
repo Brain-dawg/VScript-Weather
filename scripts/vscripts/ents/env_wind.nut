@@ -1,3 +1,7 @@
+// UNFINISHED
+// this was an experiment to recreate env_wind entirely in vscript
+// it was not a good idea
+
 IncludeScript( "weather/ents/basescriptentity" )
 
 class CScriptEnvWind extends CBaseScriptEntity {

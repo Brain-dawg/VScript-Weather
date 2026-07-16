@@ -97,6 +97,7 @@
  * }                                                                                                 *
  *                                                                                                   *
  * // alternative syntax                                                                             *
+ * MyExtension.PlayerHandler <- {}																	 *
  * function MyExtension::PlayerHandler::FindPlayerByName( name ) {                                   *
  *                                                                                                   *
  *     foreach ( player in GetAllPlayers() )                                                         *
@@ -227,8 +228,8 @@ function ___CREATE_SCOPE( name = "", namespace = null, entity_ref = null, think_
 		ent_scope.ThinkTable <- {}
 
 		// we use compilestring here instead of ent_scope[ think_func ] <- function() { ... } for easier perf testing
-		// the former syntax will always print <lambda or free-run script> in console for the func name.
-		compilestring( format( "function %s() { foreach( func in ThinkTable ) func.call( this ); return -1 }", think_func ) ).call( ent_scope )
+		// the funcname <- function() syntax is an anonymous function declaration, it will always print <lambda or free-run script> in console.
+		compilestring( format( "function %s() { foreach( func in ThinkTable ) func(); return -1 }", think_func ) ).call( ent_scope )
 
 		AddThinkToEnt( ent, think_func )
 	}

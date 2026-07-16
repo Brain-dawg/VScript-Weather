@@ -1,3 +1,5 @@
+// see vs_weather/CONFIG.nut for configuration options and how-to-use
+
 local ROOT = getroottable()
 
 local function Include( file ) { IncludeScript( "vs_weather/_core/" + file, ROOT ) }
@@ -32,13 +34,16 @@ VSWeather.ChatCommands <- {}
 
 local trace_cfg = VSWeather.CONFIG.TRACING
 
-VSWeather.do_expensive_trace <- trace_cfg.IGNORE_DISPLACEMENTS 
-                                || trace_cfg.IGNORE_PROPS 
-                                || trace_cfg.IGNORE_TRANSLUCENT 
+VSWeather.do_expensive_trace <- trace_cfg.IGNORE_DISPLACEMENTS
+                                || trace_cfg.IGNORE_PROPS
+                                || trace_cfg.IGNORE_TRANSLUCENT
                                 || (trace_cfg.IGNORE_THESE_TEXTURES || {}).len()
+                                || (trace_cfg.IGNORE_THESE_SURFACE_PROPS || {}).len()
+
+VSWeather.do_ent_avoid_trace <- (trace_cfg.AVOID_THESE_ENTS || {}).len()
 
 
-function VSWeather::collectgarbage() { ::collectgarbage() } 
+function VSWeather::collectgarbage() { ::collectgarbage() }
 function VSWeather::InitNav() {
 
     AllAreas.clear()
@@ -47,7 +52,6 @@ function VSWeather::InitNav() {
     if ( !AllAreas.len() )
         return DebugLog.LOG_PRINT( "MAP HAS NO NAVMESH! type '.wnav' to create one", "FATAL" )
 
-    // Initialize ValidAreasForParticle for each particle type
     foreach( particle_name, cfg in CONFIG.WeatherSystems )
         ValidAreasForParticle[ particle_name ] <- {}
 
@@ -72,14 +76,19 @@ function VSWeather::InitNav() {
         //     break
     }
 
+    // TODO: figure out a better snap-to-floor approach
+    // for now just grab the nearest nav area
+
+    important_ents.apply( @( ent ) GetNearestNavArea( ent.GetOrigin(), 512, true, true ) || ent )
+
     // ensure important map entities get iterated over first.
     AllAreas = important_ents.extend( AllAreas.values() )
-    
+
     local corners = array( AllAreas.len() * NUM_CORNERS, null )
 
-    // convert to vectors + area corners
-
     if ( trace_cfg.ALL_NAV_CORNERS_SLOW ) {
+
+        // convert to vectors + area corners
 
         foreach( i, area in AllAreas ) {
 
@@ -96,44 +105,53 @@ function VSWeather::InitNav() {
 
         AllAreas = AllAreas.extend( corners.filter( @( _, corner ) corner ) )
     }
-    
+
 }
 
 // Pre-check nav areas for skybox visibility and distance
-function VSWeather::SetupAreaParticleInfo( i, area ) {
+function VSWeather::SetupAreaParticleInfo( i, area, test_mode = false ) {
 
     // NOTE: this array is a mix of CBaseEntity derived ents AND CNavAreas.
     // conveniently, GetCenter() is available on both.
     // DO NOT ASSUME THIS IS ONLY NAV AREAS!
 
     local area_center = typeof area == "Vector" ? area : area.GetCenter()
-
     local ignore = area instanceof CBaseEntity ? area : LOCALPLAYER
+
     local trace_full = {
 
         start   = area_center
         end     = area_center + Vector( 0, 0, INT_MAX )
         mask    = trace_cfg.TRACE_MASK
         ignore  = ignore
+        hullmin = Vector()
+        hullmax = Vector()
         allsolid   = false
         startsolid = false
     }
 
     foreach( particle_name, particle_info in ValidAreasForParticle ) {
 
-        if ( !(area_center in particle_info) ) {
+        local cfg = CONFIG.WeatherSystems[ particle_name ]
+        local radius = cfg.radius / 2
+        local distance = cfg.travel_distance / 2
+
+        // DebugDrawBox( area_center, Vector( -radius, -radius, -distance ), Vector( radius, radius, distance ), 255, 0, 0, 0, 10.0 )
+
+
+        if ( !(area_center in particle_info) || test_mode ) {
 
             // make sure the sky is visible
             TraceLineEx( trace_full )
 
-            if ( trace_full.surface_flags & SURF_SKY ) {
+            if ( !(trace_full.surface_flags & SURF_SKY ) )
+                continue
 
-                particle_info[ area_center ] <- {
+            particle_info[ area_center ] <- {
 
-                    origin_override = Vector(),
-                    // offset trace start position down by the fraction of the travel distance that is in the skybox.
-                    start_in_skybox = TraceLine( area_center, area_center + Vector( 0, 0, CONFIG.WeatherSystems[ particle_name ].travel_distance ), ignore )
-                }
+                origin_override = Vector(),
+                // offset trace start position down by the fraction of the travel distance that is in the skybox.
+                start_in_skybox = TraceLine( area_center, area_center + Vector( 0, 0, CONFIG.WeatherSystems[ particle_name ].travel_distance ), ignore )
             }
         }
     }
@@ -146,7 +164,7 @@ function VSWeather::ValidAreasYield( i, area ) {
 }
 
 // Run the spoke trace loop using NonBlockingLoop
-function VSWeather::RunSpokeTraceLoop( oncomplete ) {
+function VSWeather::RunSpokeTraceLoop( oncomplete, test_mode = false ) {
 
     DebugLog.LOG_PRINT( "Starting trace loop (prepare for lag)", "INFO" )
 
@@ -221,7 +239,7 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
 
             TraceJobs[i] = {
 
-                area_name     = area_center.ToKVString()
+                // area_name     = area_center.ToKVString()
                 area          = area
                 particle_name = particle_name
                 particle_info = particle_info
@@ -230,7 +248,6 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
                 cfg           = cfg
                 trace_start   = area_center + Vector( 0, 0, cfg.travel_distance * particle_info[ area ].start_in_skybox )
                 trace_end     = area_center
-                hit_sky       = null // start it null and set to true or false so we don't need to trace this again
 
                 // Define trace directions (cardinal + ordinal directions)
                 trace_dirs = [
@@ -265,8 +282,11 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
     local function should_continue() {
 
         local result = current_job_index in TraceJobs
-        if ( !result )
+        if ( !result ) {
             DebugLog.LOG_PRINT( "Done tracing! Spawning particles...", "INFO" )
+            EntFire( "__vs_weather_fog", "Kill" )
+
+        }
         return result
     }
 
@@ -306,33 +326,28 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
                 local spoke_end = Vector( job.trace_start.x + dir.x * job.cfg.radius, job.trace_start.y + dir.y * job.cfg.radius, job.trace_start.z )
                 local trace_result = TraceLine( job.trace_start, spoke_end, LOCALPLAYER ) + TraceLine( spoke_end, job.trace_start, LOCALPLAYER )
 
+                local trace_full = {
+
+                    start   = job.trace_start
+                    end     = spoke_end
+                    mask    = trace_cfg.TRACE_MASK
+                    ignore  = LOCALPLAYER
+                    enthit  = First()
+                    allsolid   = false
+                    startsolid = false
+                }
+
                 // this trace hit a surface
                 // traces that progressively get smaller usually mean we're hitting a rock or something on the ground
                 if ( trace_result < info.last_result ) {
 
-                    // if (result1 + result2 >= 1.75) {
-
-                        // DebugLog.LOG_PRINT( format( "TRACING %s: %s <-> %s -> %0.2f", ""+job.area, job.trace_start.ToKVString(), spoke_end.ToKVString(), trace_result ), "DEBUG" );
-                        // status = color_small
-                    // }
-
                     if ( do_expensive_trace ) {
-
-                        local trace_full = {
-
-                            start   = job.trace_start
-                            end     = spoke_end
-                            mask    = trace_cfg.TRACE_MASK
-                            ignore  = LOCALPLAYER
-                            allsolid   = false
-                            startsolid = false
-                        }
 
                         TraceLineEx( trace_full )
 
-                        local surface_name = trace_full.surface_name
+                        local surface_name = trace_full.surface_name.tolower()
+
                         if ( surface_name[0] == '*' ) {
-                            // print( "\n" + surface_name + " : " + trace_full.surface_flags + " : " + trace_full.surface_props )
 
                             if ( trace_cfg.IGNORE_DISPLACEMENTS && surface_name == "**displacement**" )
                                 continue
@@ -341,10 +356,16 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
                                 continue
                         }
 
+                        if ( trace_cfg.IGNORE_TRANSLUCENT && trace_full.surface_flags & SURF_TRANS )
+                            continue
+
                         if ( surface_name in trace_cfg.IGNORE_THESE_TEXTURES && trace_cfg.IGNORE_THESE_TEXTURES[surface_name] )
                             continue
 
-                        if ( trace_cfg.IGNORE_TRANSLUCENT && trace_full.surface_flags & SURF_TRANS )
+                        local surface_prop = trace_full.surface_props
+                        local surface_prop_name = surface_prop in SURFACEPROPS ? SURFACEPROPS[surface_prop] : "UNKNOWN"
+
+                        if ( surface_prop_name in trace_cfg.IGNORE_THESE_SURFACE_PROPS && trace_cfg.IGNORE_THESE_SURFACE_PROPS[surface_prop_name] )
                             continue
                     }
 
@@ -364,18 +385,42 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
                 // if so, we've probably entered playable/visible space.
                 // TODO: this alone causes false-negatives, leaving "dead spots" with no rain
                 // better than raining inside though, right?
-                else if ( info.status != color_valid && trace_result > info.last_result * trace_cfg.TRACE_FORGIVENESS ) {
+                job.trace_failed = info.status != color_valid && trace_result > info.last_result * trace_cfg.TRACE_FORGIVENESS
+
+                // now check if we hit an avoidable entity, always fail this
+                if ( do_ent_avoid_trace && !job.trace_failed ) {
+
+                    TraceLineEx( trace_full )
+
+                    local enthit = trace_full.enthit
+                    local enthit_name = enthit.GetName()
+                    local enthit_class = enthit.GetClassname()
+
+                    if ( enthit != First() ) {
+
+                        if ( enthit_name in trace_cfg.AVOID_THESE_ENTS && trace_cfg.AVOID_THESE_ENTS[enthit_name] )
+                            job.trace_failed = true
+
+                        else if ( enthit_class in trace_cfg.AVOID_THESE_ENTS && trace_cfg.AVOID_THESE_ENTS[enthit_class] )
+                            job.trace_failed = true
+
+                        if ( job.trace_failed )
+                            job.particle_info[ job.area ].origin_override = Vector( job.trace_start.x, job.trace_start.y, job.trace_start.z + z_step )
+                    }
+                }
+
+                if ( job.trace_failed ) {
 
                     info.status = color_danger
                     job.completed = true
-                    job.trace_failed = true
                     FailedJobs.append( job )
                 }
 
                 // set TRACE_FUNCS very low ( < 12 ) to avoid crashing before uncommenting this
                 // use host_timescale to compensate for the slowdown
 
-                // DebugDrawLine( job.trace_start, spoke_end, info.status[0], info.status[1], info.status[2], false, info.status == color_valid ? 0.5 : 2.0 )
+                if ( test_mode )
+                    DebugDrawLine( job.trace_start, spoke_end, info.status[0], info.status[1], info.status[2], false, 10.0 )
             }
 
             // Step the start position down for next trace
@@ -399,8 +444,19 @@ function VSWeather::RunSpokeTraceLoop( oncomplete ) {
                 delete ValidAreasForParticle[job.particle_name][job.area]
 
             current_job_index++
+
+            // if ( test_mode ) {
+
+            //     local radius = job.cfg.radius / 2
+            //     local distance = job.cfg.travel_distance / 2
+
+            //     DebugDrawBox( job.trace_start, Vector( -radius, -radius, -job.cfg.travel_distance / 2 ), Vector( radius, radius, job.cfg.travel_distance / 2 ), 255, 0, 0, 0, 10.0 )
+            // }
         }
     }
+
+    if ( test_mode )
+        return Generators.StartGenerator( Generators.NonBlockingLoop( should_continue, CONFIG.ITERS_PER_FRAME.TRACE_FUNCS, trace_step, null, oncomplete ) )
 
     return Generators.NonBlockingLoop( should_continue, CONFIG.ITERS_PER_FRAME.TRACE_FUNCS, trace_step, null, oncomplete )
 }
@@ -471,7 +527,7 @@ function VSWeather::SpawnParticles( area, info ) {
     // area.DebugDrawFilled( color_valid[0], color_valid[1], color_valid[2], 255, 0.1, true, 0.0 )
 
     // Check for nearby particles to avoid duplicates
-    local nearby_particle = FindByClassnameNearest( "info_particle_system", kvs.origin, cfg.radius )
+    local nearby_particle = FindByClassnameNearest( "info_particle_system", kvs.origin, cfg.radius * cfg.overlap_mult )
     if ( nearby_particle && GetPropString( nearby_particle, "m_iszEffectName" ) == particle_name ) {
         DebugLog.LOG_PRINT( "Skipping duplicate particle at " + kvs.origin.ToKVString(), "DEBUG" )
         return
@@ -490,10 +546,10 @@ function VSWeather::SpawnParticles( area, info ) {
     if ( ent.GetOrigin() != final_origin )
         ent.SetAbsOrigin( final_origin )
 
-    DebugDrawBox( final_origin, Vector( -10, -10, -10 ), Vector( 10, 10, 10 ), color_small[0], color_small[1], color_small[2], 0, 60.0 )
-    DebugDrawLine( origin_pre_offset, final_origin, color_small[0], color_small[1], color_small[2], false, 60.0 )
+    DebugDrawBox( final_origin, Vector( -10, -10, -10 ), Vector( 10, 10, 10 ), color_small[0], color_small[1], color_small[2], 0, 9999.0 )
+    DebugDrawLine( origin_pre_offset, final_origin, color_small[0], color_small[1], color_small[2], false, 9999.0 )
 
-    DebugLog.LOG_PRINT( "Spawned particle system: " + particle_name + " at " + final_origin.ToKVString() + "(Count: " + particle_count + ")", "DEBUG" )
+    DebugLog.LOG_PRINT( "Spawned particle system at " + final_origin.ToKVString() + "(Count: " + particle_count + ")", "DEBUG" )
 
     particle_count++
 }
@@ -543,6 +599,17 @@ function VSWeather::Start() {
 
     AllAreas = AllAreas.filter( @( _, area ) area && ( typeof area == "Vector" || area.IsValid() ) )
 
+    SpawnEntityFromTable( "env_fog_controller", {
+        targetname = "__vs_weather_fog"
+        farz = 1
+        fogstart = 1
+        fogend = 1
+        fogenable = 1
+        fogcolor = "0 0 0"
+    })
+
+    EntFire( "player", "SetFogController", "__vs_weather_fog" )
+
     Generators.GeneratorChain([
 
         [
@@ -571,16 +638,68 @@ function VSWeather::Start() {
 }
 
 // chat commands are all prefixed with ".w"
-// e.g. "edit" is ".wedit"
-
-function VSWeather::ChatCommands::trace( params, args ) { Start() }
-function VSWeather::ChatCommands::start( params, args ) { trace( params, args ) }
+// e.g. "start" is ".wstart"
+function VSWeather::ChatCommands::start( params, args ) { Start() }
 // function VSWeather::ChatCommands::edit( params, args ) {}
+
+function VSWeather::ChatCommands::test( params, args ) {
+
+    if ( !("_ValidAreasForParticle_BACKUP" in VSWeather) )
+        VSWeather._ValidAreasForParticle_BACKUP <- clone ValidAreasForParticle
+
+    local area_center = GetNearestNavArea( LOCALPLAYER.GetOrigin(), INT_MAX, false, false ).GetCenter()
+
+    foreach( particle_name, particle_info in ValidAreasForParticle ) {
+
+        particle_info.clear()
+
+        particle_info[ area_center ] <- {
+
+            origin_override = Vector()
+            start_in_skybox = TraceLine( area_center, area_center + Vector( 0, 0, CONFIG.WeatherSystems[ particle_name ].travel_distance ), LOCALPLAYER )
+        }
+    }
+
+    TraceJobs = array( 2, null )
+    DebugDrawClear()
+    SetupAreaParticleInfo( 0, area_center, true )
+    RunSpokeTraceLoop( @() ValidAreasForParticle = _ValidAreasForParticle_BACKUP, true )
+
+    // ValidAreasForParticle = _ValidAreasForParticle_BACKUP
+}
+function VSWeather::ChatCommands::trace( params, args ) {
+
+    local trace_full = {
+        start = LOCALPLAYER.EyePosition()
+        end   = LOCALPLAYER.EyeAngles().Forward() * INT_MAX
+        mask  = trace_cfg.TRACE_MASK
+        ignore = LOCALPLAYER
+    }
+
+    DebugLog.LOG_PRINT( "Trace info printed to console.  Set mat_queue_mode 0 for better readability.", "INFO" )
+    TraceLineEx( trace_full )
+    DebugDrawLine( trace_full.startpos, trace_full.endpos, 0, 255, 0, false, 10.0 )
+
+    delete trace_full.start
+    delete trace_full.end
+    delete trace_full.mask
+    delete trace_full.ignore
+
+    local surface_prop = trace_full.surface_props
+    local surface_prop_name = surface_prop in SURFACEPROPS ? SURFACEPROPS[surface_prop] : "UNKNOWN"
+    trace_full.surface_props = surface_prop + " (" + surface_prop_name + ")"
+
+    __DumpScope( 0, trace_full )
+}
+
 function VSWeather::ChatCommands::save( params, args ) {
 
     local output = ""
 
-    if ( !args.len() || args[0] == "instance" ) {
+    if ( !args.len() )
+        return DebugLog.LOG_PRINT( "Usage: .wsave <instance|script>", "INFO" )
+
+    if ( args[0] == "instance" ) {
 
         foreach( kvs in SpawnedParticles )
             output += EntityKVToInstanceString( kvs )
@@ -732,7 +851,7 @@ function VSWeather::ChatCommands::failed( params, args ) {
     DebugDrawClear()
     foreach( job in FailedJobs ) {
 
-        DebugLog.LOG_PRINT( "Failed job: " + job.area_name + " -> " + job.particle_name + " at " + job.trace_start.ToKVString(), "INFO" )
+        // DebugLog.LOG_PRINT( "Failed job: " + job.area_name + " -> " + job.particle_name + " at " + job.trace_start.ToKVString(), "INFO" )
 
         local radius = CONFIG.WeatherSystems[ job.particle_name ].radius
         DebugDrawBox( job.trace_end + Vector( 0, 0, CONFIG.WeatherSystems[ job.particle_name ].travel_distance * 0.5 ), Vector( -radius, -radius, -radius ), Vector( radius, radius, radius ), 255, 0, 0, 0, 60.0 )
@@ -744,9 +863,9 @@ function VSWeather::ChatCommands::help( params, args ) {
 
     local str = ""
     foreach( cmd, _ in VSWeather.ChatCommands ) {
-        str += ".w" + cmd + "\n"
+        str += "\n.w" + cmd
     }
-    DebugLog.LOG_PRINT( "Available commands:\n" + str, "INFO" )
+    DebugLog.LOG_PRINT( "Available commands:" + str, "INFO" )
 }
 
 function VSWeather::Events::OnGameEvent_player_say( params ) {

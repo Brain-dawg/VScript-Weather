@@ -13,7 +13,7 @@ function VSWeather::DebugLog::LOG_PRINT( message, severity = "INFO" ) {
     if ( severity == "DEBUG" && GetInt( "developer" ) < 2 )
         return
 
-    ClientPrint( null, 3, this["LOG_" + severity] + message )
+    ClientPrint( null, 3, this["LOG_" + severity] + message + "\x01" )
 
     if ( severity == "ERROR" )
         error( message )
