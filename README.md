@@ -1,4 +1,5 @@
 # VSWeather
+![cool debug trace](./trace.gif)
 ## Automagic weather particle placement for your TF2 maps
 
 VSWeather traverses your maps navmesh and runs thousands upon thousands of traces, collision checking as many parts of your map as possible to automatically generate accurate info_particle_system placement with little manual cleanup required.  Anywhere this script doesn't place weather effects, you probably need to use collision particles.
@@ -15,7 +16,7 @@ Drop the `scripts/` folder in this repo into your `tf/` folder.
 See `tf/scripts/vscripts/vs_weather/CONFIG.nut` for usage and configuration.
 
 ## Chat Commands
-- `.wstart` start the weather particle placement process.  This will black out your screen while running.  Keep console open.
+- `.wstart` start the weather particle placement process.
 - `.wsave <instance|script>` save the results to a VMF instance or script file.
 - `.wreload` or `.wreset` reload the script for config changes.  Use this command instead of re-executing the main script.
 - `.wnav <create|cleanup|subdivide|disconnect>` navmesh utilities, self-explanatory.

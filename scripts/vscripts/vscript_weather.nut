@@ -418,7 +418,7 @@ function VSWeather::RunSpokeTraceLoop( oncomplete, test_mode = false ) {
                 // use host_timescale to compensate for the slowdown
 
                 if ( test_mode )
-                    DebugDrawLine( job.trace_start, spoke_end, info.status[0], info.status[1], info.status[2], false, 10.0 )
+                    DebugDrawLine( job.trace_start, spoke_end, info.status[0], info.status[1], info.status[2], false, 2.0 )
             }
 
             // Step the start position down for next trace
@@ -606,7 +606,7 @@ function VSWeather::Start() {
         fogcolor = "0 0 0"
     })
 
-    EntFire( "player", "SetFogController", "__vs_weather_fog" )
+    // EntFire( "player", "SetFogController", "__vs_weather_fog" )
 
     Generators.GeneratorChain([
 
