@@ -65,6 +65,6 @@ Debug Commands (probably not super useful):
     - Yea my bad, don't do this for now...
 
 ## Credit/License
-You are free to use the generated weather instances and scripts as you please, including commercial use, credit me in your map description if you want.  That being said, the `.wnav disconnect` and `.wnav cleanup` commands rely on a modified version of the script for disconnecting unreachable areas, consult those credits if you use these features.
+You are free to use the generated weather instances and scripts as you please, including commercial use, credit me/this GitHub repo in your map description.  That being said, the `.wnav disconnect` and `.wnav cleanup` commands rely on a modified version of the script for disconnecting unreachable areas, consult those credits if you use these features.
 
 If this script helped you and you want to support me, slide me a fat <1% on your map on the workshop or something idk.  Not required.
