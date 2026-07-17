@@ -13,7 +13,8 @@ Your mileage will vary depending on your map's layout, included in the `examples
 If your map does not have a navmesh, the `.wnav create` command will automatically handle multi-stage and other types of maps that struggle with the basic `nav_generate` command.  After generating the nav, you can use `.wnav cleanup` to automatically subdivide large nav areas and disconnect unreachable ones ([credit to Mikusch and ficool2 for the nav disconnect script](https://tf2maps.net/downloads/disconnect-unreachable-adjacent-nav-areas.16744/))
 
 ## Installing/Using
-Drop the `scripts/` folder in this repo into your `tf/` folder.
+-Click the `< > Code` dropdown button at the top of this page and select `Download ZIP`
+- Open it, open `VScript-Weather-main`, drop the `scripts/` folder into your `tf/` folder.
 
 See `tf/scripts/vscripts/vs_weather/CONFIG.nut` for usage and configuration.
 
@@ -32,6 +33,7 @@ Debug Commands (probably not super useful):
 ## FAQ
 - I'm getting a bunch of "does not exist" errors in console
     - You did not use `.wreload`/`.wreset` and tried to `script_execute vscript_weather` a second time.  Run `ent_fire __vs* Kill` then `script_execute vscript_weather` again.
+    - This may also happen after getting `SQQuerySuspend` errors, run `.wreload` if this happens.
 - I'm getting a bunch of "script terminated by SQQuerySuspend" errors
     - See `tf/scripts/vscripts/vs_weather/CONFIG.nut` for more info.
 - I set `developer 2` and now my game is completely frozen and busted when I open/close console from all the debug message spam
