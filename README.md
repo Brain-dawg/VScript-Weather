@@ -13,7 +13,7 @@ Your mileage will vary depending on your map's layout, included in the `examples
 If your map does not have a navmesh, the `.wnav create` command will automatically handle multi-stage and other types of maps that struggle with the basic `nav_generate` command.  After generating the nav, you can use `.wnav cleanup` to automatically subdivide large nav areas and disconnect unreachable ones ([credit to Mikusch and ficool2 for the nav disconnect script](https://tf2maps.net/downloads/disconnect-unreachable-adjacent-nav-areas.16744/))
 
 ## Installing/Using
--Click the `< > Code` dropdown button at the top of this page and select `Download ZIP`
+- Click the `< > Code` dropdown button at the top of this page and select `Download ZIP`
 - Open it, open `VScript-Weather-main`, drop the `scripts/` folder into your `tf/` folder.
 
 See `tf/scripts/vscripts/vs_weather/CONFIG.nut` for usage and configuration.
