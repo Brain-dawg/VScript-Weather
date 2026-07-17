@@ -282,7 +282,7 @@ function VSWeather::RunSpokeTraceLoop( oncomplete, test_mode = false ) {
         local result = current_job_index in TraceJobs
         if ( !result ) {
             DebugLog.LOG_PRINT( "Done tracing! Spawning particles...", "INFO" )
-            EntFire( "__vs_weather_fog", "Kill" )
+            // EntFire( "__vs_weather_fog", "Kill" )
 
         }
         return result
@@ -597,14 +597,14 @@ function VSWeather::Start() {
 
     AllAreas = AllAreas.filter( @( _, area ) area && ( typeof area == "Vector" || area.IsValid() ) )
 
-    SpawnEntityFromTable( "env_fog_controller", {
-        targetname = "__vs_weather_fog"
-        farz = 1
-        fogstart = 1
-        fogend = 1
-        fogenable = 1
-        fogcolor = "0 0 0"
-    })
+    // SpawnEntityFromTable( "env_fog_controller", {
+    //     targetname = "__vs_weather_fog"
+    //     farz = 1
+    //     fogstart = 1
+    //     fogend = 1
+    //     fogenable = 1
+    //     fogcolor = "0 0 0"
+    // })
 
     // EntFire( "player", "SetFogController", "__vs_weather_fog" )
 
