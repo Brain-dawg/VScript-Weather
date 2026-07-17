@@ -8,12 +8,12 @@
  * 3. If your map has no navmesh, type `.wnav create`, repeat step 2 on map reload, then type `.wnav cleanup`                            *
  * 4. type `.wstart` to trace the map and spawn particles                                                                                *
  * 5a. FOR MAPPERS: type `.wsave instance` to save particles to a .vmf instance                                                          *
- * 5b. FOR SERVER OWNERS: type `.wsave script` to save particles to a .nut file                                                          *
+ * 5b. FOR SERVER OWNERS: type `.wsave script` to save particles to a .nut file.  Open this file to see how to use in your server cfg    *
  * 6. for updating the config and re-running, type `.wreload` or `.wreset` in chat, repeat step 4                                        *
  *                                                                                                                                       *
  * if you are having issues with "Script terminated by SQQuerySuspend":                                                                  *
  * - if it happens very early after running `.wstart`, try setting ALL_NAV_CORNERS_SLOW to false                                         *
- * - if it happens later, reduce TRACE_FUNCS (bottom of this file)                                                                       *
+ * - if it happens randomly in the middle of tracing, reduce TRACE_FUNCS (bottom of this file)                                           *
  *****************************************************************************************************************************************/
 
 VSWeather.CONFIG <- {
@@ -218,19 +218,20 @@ VSWeather.CONFIG <- {
         /***************************************************************************************************
          * Main loop, AKA the slow part:                                                                   *
          * number of TraceLine/TraceLineEx/TraceHull function calls per frame (and other expensive things) *
-         * change this value until perf warnings are safely between 70-90ms                                *
+         * set this as high as you can until perf warnings are safely between 70-90ms                      *
          * >100ms will hit SQQuerySuspend                                                                  *
          ***************************************************************************************************/
-        TRACE_FUNCS = 1600
+        TRACE_FUNCS = 800
 
         /********************************************
          * number of nav areas to process per frame *
          ********************************************/
         NAV_AREAS  = 800
 
-        /*************************************************
-         * number of particle systems to spawn per frame *
-         *************************************************/
-        SPAWN_PARTICLES = 300
+        /**********************************************************
+         * number of particle systems to spawn per frame          *
+         * Setting this too high will cause overlapping particles *
+         **********************************************************/
+        SPAWN_PARTICLES = 5
     }
 }
