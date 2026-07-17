@@ -7,7 +7,7 @@ VSWeather traverses your maps navmesh and runs thousands upon thousands of trace
 
 You can export the results to either a VMF instance for further fine-tuning, or a script file to execute in your server config to add weather effects to existing maps.
 
-Your mileage will vary depending on your map's layout, included in the `vs_weather/examples/` folder is a collection of pre-generated instances/scripts for showing the types of maps it does (and doesn't) work best on.  If your map has open skies with little solid geometry blocking skybox visibility (pl_upward, pl_snowycoast, vsh_distillery), you should be good to go.  If your map has confined outdoor space and tight alleyways or overhanging cranes/stuff (cp_mercenarypack 1st point, pl_badwater), you're definitely gonna need a smaller particle system than the `env_rain_002_256` example for this to work well.
+Your mileage will vary depending on your map layout, included in the `vs_weather/examples/` folder is a collection of pre-generated instances/scripts for showing the types of maps it does (and doesn't) work best on.  If your map has open skies with little solid geometry blocking skybox visibility (pl_upward, pl_snowycoast, vsh_distillery), you should be good to go.  If your map has confined outdoor space and tight alleyways or overhanging cranes/stuff (cp_mercenarypack 1st point, pl_badwater), you're definitely gonna need a smaller particle system than the `env_rain_002_256` example for this to work well.
 
 None of the example outputs were modified afterwards, all of them were generated using the provided default config (with the exception of pl_enclosure, `ALL_NAV_CORNERS_SLOW` was set to false).
 
@@ -53,7 +53,7 @@ Debug Commands (probably not super useful):
 - **I'm getting a bunch of "does not exist" errors in console**
     - You did not use `.wreload`/`.wreset` and tried to `script_execute vscript_weather` a second time.
     - Run `ent_fire __vs_weather* Kill` in console, then `script_execute vscript_weather`.
-    - This may also happen after getting `SQQuerySuspend` errors, run `.wreload` if this happens.
+    - This may also happen after getting `SQQuerySuspend` errors, same fix applies.
 
 - **I'm getting a bunch of "Script terminated by SQQuerySuspend" errors**
     - See `tf/scripts/vscripts/vs_weather/CONFIG.nut` for more info.
@@ -65,6 +65,6 @@ Debug Commands (probably not super useful):
     - Yea my bad, don't do this for now...
 
 ## Credit/License
-You are free to use the generated weather instances and scripts as you please, including commercial use, credit me if you want.  That being said, the `.wnav disconnect` and `.wnav cleanup` commands rely on a modified version of the script for disconnecting unreachable areas, consult those credits if you use these features.
+You are free to use the generated weather instances and scripts as you please, including commercial use, credit me in your map description if you want.  That being said, the `.wnav disconnect` and `.wnav cleanup` commands rely on a modified version of the script for disconnecting unreachable areas, consult those credits if you use these features.
 
 If this script helped you and you want to support me, slide me a fat <1% on your map on the workshop or something idk.  Not required.
