@@ -1,0 +1,353 @@
+entity
+{
+    "start_active" "1"
+    "flag_as_weather" "1"
+    "origin" "-4175.000000 2600.000000 -181.481689"
+    "kv" " "
+    "targetname" "__vs_weather_env_rain_002_256_-4175.000000 2600.000000 -839.481689"
+    "classname" "info_particle_system"
+    "effect_name" "env_rain_002_256"
+    editor
+    {
+        "color" "0 128 255"
+        "visgroupshown" "1"
+        "visgroupautoshown" "1"
+    }
+}
+entity
+{
+    "start_active" "1"
+    "flag_as_weather" "1"
+    "origin" "-4175.000000 2900.000000 -189.410583"
+    "kv" " "
+    "targetname" "__vs_weather_env_rain_002_256_-4175.000000 2900.000000 -851.410583"
+    "classname" "info_particle_system"
+    "effect_name" "env_rain_002_256"
+    editor
+    {
+        "color" "0 128 255"
+        "visgroupshown" "1"
+        "visgroupautoshown" "1"
+    }
+}
+entity
+{
+    "start_active" "1"
+    "flag_as_weather" "1"
+    "origin" "-3650.000000 1550.000000 -347.254761"
+    "kv" " "
+    "targetname" "__vs_weather_env_rain_002_256_-3650.000000 1550.000000 -1013.254761"
+    "classname" "info_particle_system"
+    "effect_name" "env_rain_002_256"
+    editor
+    {
+        "color" "0 128 255"
+        "visgroupshown" "1"
+        "visgroupautoshown" "1"
+    }
+}
+entity
+{
+    "start_active" "1"
+    "flag_as_weather" "1"
+    "origin" "-4337.500000 2762.500000 -171.740601"
+    "kv" " "
+    "targetname" "__vs_weather_env_rain_002_256_-4337.500000 2762.500000 -825.740601"
+    "classname" "info_particle_system"
+    "effect_name" "env_rain_002_256"
+    editor
+    {
+        "color" "0 128 255"
+        "visgroupshown" "1"
+        "visgroupautoshown" "1"
+    }
+}
+entity
+{
+    "start_active" "1"
+    "flag_as_weather" "1"
+    "origin" "-1387.500000 3337.500000 -428.721924"
+    "kv" " "
+    "targetname" "__vs_weather_env_rain_002_256_-1387.500000 3337.500000 -1082.721924"
+    "classname" "info_particle_system"
+    "effect_name" "env_rain_002_256"
+    editor
+    {
+        "color" "0 128 255"
+        "visgroupshown" "1"
+        "visgroupautoshown" "1"
+    }
+}
+entity
+{
+    "start_active" "1"
+    "flag_as_weather" "1"
+    "origin" "-1750.000000 3550.000000 -418.286255"
+    "kv" " "
+    "targetname" "__vs_weather_env_rain_002_256_-1750.000000 3550.000000 -1074.286255"
+    "classname" "info_particle_system"
+    "effect_name" "env_rain_002_256"
+    editor
+    {
+        "color" "0 128 255"
+        "visgroupshown" "1"
+        "visgroupautoshown" "1"
+    }
+}
+entity
+{
+    "start_active" "1"
+    "flag_as_weather" "1"
+    "origin" "-2950.000000 1850.000000 -429.170410"
+    "kv" " "
+    "targetname" "__vs_weather_env_rain_002_256_-2950.000000 1850.000000 -1083.170410"
+    "classname" "info_particle_system"
+    "effect_name" "env_rain_002_256"
+    editor
+    {
+        "color" "0 128 255"
+        "visgroupshown" "1"
+        "visgroupautoshown" "1"
+    }
+}
+entity
+{
+    "start_active" "1"
+    "flag_as_weather" "1"
+    "origin" "-4025.000000 3150.000000 -209.582092"
+    "kv" " "
+    "targetname" "__vs_weather_env_rain_002_256_-4025.000000 3150.000000 -875.582092"
+    "classname" "info_particle_system"
+    "effect_name" "env_rain_002_256"
+    editor
+    {
+        "color" "0 128 255"
+        "visgroupshown" "1"
+        "visgroupautoshown" "1"
+    }
+}
+entity
+{
+    "start_active" "1"
+    "flag_as_weather" "1"
+    "origin" "-4000.000000 2775.000000 -241.014282"
+    "kv" " "
+    "targetname" "__vs_weather_env_rain_002_256_-4000.000000 2775.000000 -901.014282"
+    "classname" "info_particle_system"
+    "effect_name" "env_rain_002_256"
+    editor
+    {
+        "color" "0 128 255"
+        "visgroupshown" "1"
+        "visgroupautoshown" "1"
+    }
+}
+entity
+{
+    "start_active" "1"
+    "flag_as_weather" "1"
+    "origin" "-3700.000000 3375.000000 -291.240540"
+    "kv" " "
+    "targetname" "__vs_weather_env_rain_002_256_-3700.000000 3375.000000 -953.240540"
+    "classname" "info_particle_system"
+    "effect_name" "env_rain_002_256"
+    editor
+    {
+        "color" "0 128 255"
+        "visgroupshown" "1"
+        "visgroupautoshown" "1"
+    }
+}
+entity
+{
+    "start_active" "1"
+    "flag_as_weather" "1"
+    "origin" "-1150.000000 3225.000000 -429.482910"
+    "kv" " "
+    "targetname" "__vs_weather_env_rain_002_256_-1150.000000 3225.000000 -1083.482910"
+    "classname" "info_particle_system"
+    "effect_name" "env_rain_002_256"
+    editor
+    {
+        "color" "0 128 255"
+        "visgroupshown" "1"
+        "visgroupautoshown" "1"
+    }
+}
+entity
+{
+    "start_active" "1"
+    "flag_as_weather" "1"
+    "origin" "-4175.000000 3375.000000 -176.673523"
+    "kv" " "
+    "targetname" "__vs_weather_env_rain_002_256_-4175.000000 3375.000000 -832.673523"
+    "classname" "info_particle_system"
+    "effect_name" "env_rain_002_256"
+    editor
+    {
+        "color" "0 128 255"
+        "visgroupshown" "1"
+        "visgroupautoshown" "1"
+    }
+}
+entity
+{
+    "start_active" "1"
+    "flag_as_weather" "1"
+    "origin" "-4650.000000 1475.000000 151.927490"
+    "kv" " "
+    "targetname" "__vs_weather_env_rain_002_256_-4650.000000 1475.000000 -506.072510"
+    "classname" "info_particle_system"
+    "effect_name" "env_rain_002_256"
+    editor
+    {
+        "color" "0 128 255"
+        "visgroupshown" "1"
+        "visgroupautoshown" "1"
+    }
+}
+entity
+{
+    "start_active" "1"
+    "flag_as_weather" "1"
+    "origin" "-4000.000000 1825.000000 -235.612427"
+    "kv" " "
+    "targetname" "__vs_weather_env_rain_002_256_-4000.000000 1825.000000 -891.612427"
+    "classname" "info_particle_system"
+    "effect_name" "env_rain_002_256"
+    editor
+    {
+        "color" "0 128 255"
+        "visgroupshown" "1"
+        "visgroupautoshown" "1"
+    }
+}
+entity
+{
+    "start_active" "1"
+    "flag_as_weather" "1"
+    "origin" "-2450.000000 3700.000000 -417.053101"
+    "kv" " "
+    "targetname" "__vs_weather_env_rain_002_256_-2450.000000 3700.000000 -1071.053101"
+    "classname" "info_particle_system"
+    "effect_name" "env_rain_002_256"
+    editor
+    {
+        "color" "0 128 255"
+        "visgroupshown" "1"
+        "visgroupautoshown" "1"
+    }
+}
+entity
+{
+    "start_active" "1"
+    "flag_as_weather" "1"
+    "origin" "-4400.000000 1725.000000 367.661743"
+    "kv" " "
+    "targetname" "__vs_weather_env_rain_002_256_-4400.000000 1725.000000 -286.338257"
+    "classname" "info_particle_system"
+    "effect_name" "env_rain_002_256"
+    editor
+    {
+        "color" "0 128 255"
+        "visgroupshown" "1"
+        "visgroupautoshown" "1"
+    }
+}
+entity
+{
+    "start_active" "1"
+    "flag_as_weather" "1"
+    "origin" "-3950.000000 1425.000000 -244.936584"
+    "kv" " "
+    "targetname" "__vs_weather_env_rain_002_256_-3950.000000 1425.000000 -912.936584"
+    "classname" "info_particle_system"
+    "effect_name" "env_rain_002_256"
+    editor
+    {
+        "color" "0 128 255"
+        "visgroupshown" "1"
+        "visgroupautoshown" "1"
+    }
+}
+entity
+{
+    "start_active" "1"
+    "flag_as_weather" "1"
+    "origin" "-4400.000000 2525.000000 -167.108093"
+    "kv" " "
+    "targetname" "__vs_weather_env_rain_002_256_-4400.000000 2525.000000 -821.108093"
+    "classname" "info_particle_system"
+    "effect_name" "env_rain_002_256"
+    editor
+    {
+        "color" "0 128 255"
+        "visgroupshown" "1"
+        "visgroupautoshown" "1"
+    }
+}
+entity
+{
+    "start_active" "1"
+    "flag_as_weather" "1"
+    "origin" "-690.000000 4103.000000 434.820984"
+    "kv" " "
+    "targetname" "__vs_weather_env_rain_002_256_-690.000000 4103.000000 -215.179001"
+    "classname" "info_particle_system"
+    "effect_name" "env_rain_002_256"
+    editor
+    {
+        "color" "0 128 255"
+        "visgroupshown" "1"
+        "visgroupautoshown" "1"
+    }
+}
+entity
+{
+    "start_active" "1"
+    "flag_as_weather" "1"
+    "origin" "-4525.000000 1900.000000 300.614594"
+    "kv" " "
+    "targetname" "__vs_weather_env_rain_002_256_-4525.000000 1900.000000 -405.385406"
+    "classname" "info_particle_system"
+    "effect_name" "env_rain_002_256"
+    editor
+    {
+        "color" "0 128 255"
+        "visgroupshown" "1"
+        "visgroupautoshown" "1"
+    }
+}
+entity
+{
+    "start_active" "1"
+    "flag_as_weather" "1"
+    "origin" "-3925.000000 3375.000000 -218.893494"
+    "kv" " "
+    "targetname" "__vs_weather_env_rain_002_256_-3925.000000 3375.000000 -882.893494"
+    "classname" "info_particle_system"
+    "effect_name" "env_rain_002_256"
+    editor
+    {
+        "color" "0 128 255"
+        "visgroupshown" "1"
+        "visgroupautoshown" "1"
+    }
+}
+entity
+{
+    "start_active" "1"
+    "flag_as_weather" "1"
+    "origin" "-2762.500000 2062.500000 -428.020996"
+    "kv" " "
+    "targetname" "__vs_weather_env_rain_002_256_-2762.500000 2062.500000 -1082.020996"
+    "classname" "info_particle_system"
+    "effect_name" "env_rain_002_256"
+    editor
+    {
+        "color" "0 128 255"
+        "visgroupshown" "1"
+        "visgroupautoshown" "1"
+    }
+}
+ 

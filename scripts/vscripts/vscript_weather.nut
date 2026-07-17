@@ -18,16 +18,14 @@ Include( "maplogic" )
 Include( "navutils" )
 
 DebugDrawClear()
-// VSWeather.AreasToTrace <- []
-// VSWeather.TraceState <- {}
-VSWeather.AllAreas   <- {}
-VSWeather.particle_count <- 0
-VSWeather.weather_complete <- false
-VSWeather.weather_editing  <- false
+VSWeather.AllAreas              <- {}
+VSWeather.particle_count        <- 0
+VSWeather.weather_complete      <- false
+VSWeather.weather_editing       <- false
+VSWeather.TraceJobs             <- []
+VSWeather.FailedJobs            <- []
+VSWeather.SpawnedParticles      <- []
 VSWeather.ValidAreasForParticle <- {}
-VSWeather.TraceJobs    <- []
-VSWeather.FailedJobs   <- []
-VSWeather.SpawnedParticles <- []
 
 VSWeather.Events <- {}
 VSWeather.ChatCommands <- {}
@@ -50,7 +48,7 @@ function VSWeather::InitNav() {
     GetAllAreas( AllAreas )
 
     if ( !AllAreas.len() )
-        return DebugLog.LOG_PRINT( "MAP HAS NO NAVMESH! type '.wnav' to create one", "FATAL" )
+        return DebugLog.LOG_PRINT( "MAP HAS NO NAVMESH! type '.wnav create' to create one", "FATAL" )
 
     foreach( particle_name, cfg in CONFIG.WeatherSystems )
         ValidAreasForParticle[ particle_name ] <- {}
@@ -766,15 +764,7 @@ printl( ""[VSWEATHER] spawned "" + VS_WEATHER_PARTICLES.len() + "" weather parti
 // respawn on round restarts
 ::___VSWEATHER_PARTICLE_RESPAWN <- {
 
-    function OnGameEvent_teamplay_restart_round( _ ) {
-
-        if ( IsMannVsMachineMode() ) return
-
-        ___VSWEATHER_PARTICLE_SPAWN()
-    }
     function OnGameEvent_teamplay_round_start( _ ) {
-
-        if ( !IsMannVsMachineMode() ) return
 
         ___VSWEATHER_PARTICLE_SPAWN()
     }
