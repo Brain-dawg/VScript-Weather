@@ -1,7 +1,7 @@
 # VSWeather
 ## Automagic weather particle placement for your TF2 maps
 ![cool debug trace](./trace.gif)
-**Slowed down and visualized to show how it works**
+*Slowed down and visualized*
 
 ## What it do
 VSWeather traverses your maps navmesh and runs thousands upon thousands of traces, collision checking as many parts of your map as possible to automatically generate accurate info_particle_system placement with little manual cleanup required.  Anywhere this script doesn't place weather effects, you probably need to use collision particles.
