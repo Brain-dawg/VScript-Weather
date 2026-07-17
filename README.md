@@ -12,7 +12,7 @@ If your map does not have a navmesh, the `.wnav create` command will automatical
 ## Installing/Using
 Drop the `scripts/` folder in this repo into your `tf/` folder.
 
-See `vs_weather/CONFIG.nut` for usage and configuration.
+See `tf/scripts/vscripts/vs_weather/CONFIG.nut` for usage and configuration.
 
 ## Chat Commands
 - `.wstart` start the weather particle placement process.  This will black out your screen while running.  Keep console open.
@@ -30,7 +30,7 @@ Debug Commands (probably not super useful):
 - I'm getting a bunch of "does not exist" errors in console
     - You did not use `.wreload`/`.wreset` and tried to `script_execute vscript_weather` a second time.  Run `ent_fire __vs* Kill` then `script_execute vscript_weather` again.
 - I'm getting a bunch of "script terminated by SQQuerySuspend" errors
-    - See `vs_weather/CONFIG.nut` for more info.
+    - See `tf/scripts/vscripts/vs_weather/CONFIG.nut` for more info.
 - I set `developer 2` and now my game is completely frozen and busted when I open/close console from all the debug message spam
     - Yea my bad, don't do this for now...
 
