@@ -1,4 +1,4 @@
-# VSWeather: Automagic Weather Particles For Your TF2 Maps
+# Automagic Weather Particles For Your TF2 Maps
 ![cool debug trace](./trace.gif)
 *Slowed down and visualized*
 
