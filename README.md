@@ -1,4 +1,5 @@
-# VSWeather: Automagic weather particle placement for your TF2 maps
+# VSWeather
+## Automagic weather particle placement for your TF2 maps
 ![cool debug trace](./trace.gif)
 **Slowed down and visualized to show how it works**
 
