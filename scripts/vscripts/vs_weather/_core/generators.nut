@@ -160,13 +160,13 @@ function VSWeather::Generators::DeferredForEach( iterable, iters_per_frame, func
 }
 
 // non-blocking loop, will exit when the provided exit function returns false
-function VSWeather::Generators::NonBlockingLoop( exit, iters_per_frame, func, onyield = null, oncomplete = null ) {
+function VSWeather::Generators::NonBlockingLoop( run, iters_per_frame, func, onyield = null, oncomplete = null ) {
 
     // start on next frame
     yield 1
     local i = 0
 
-    while ( exit() ) {
+    while ( run() ) {
 
         i++
         func()

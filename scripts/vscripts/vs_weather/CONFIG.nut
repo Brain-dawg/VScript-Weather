@@ -37,7 +37,7 @@ VSWeather.CONFIG <- {
              * multiplier for the radius check for nearby particles              *
              * particles spawning too far apart? try setting this to <= 0.85     *
              *********************************************************************/
-            overlap_mult = 0.8
+            overlap_mult = 0.85
 
             /**********************************************************************************
              * distance from the particle system origin -> the point where the particle stops *
@@ -64,7 +64,6 @@ VSWeather.CONFIG <- {
 
                 /****************************************************************************
                  * Many configs set tf_particles_disable_weather 0 for performance reasons. *
-                 * NOTE: weirdly the example env_rain_002_256 will not be affected by this? *
                  ****************************************************************************/
                 flag_as_weather = true
             }
@@ -230,8 +229,7 @@ VSWeather.CONFIG <- {
 
         /**********************************************************
          * number of particle systems to spawn per frame          *
-         * Setting this too high will cause overlapping particles *
          **********************************************************/
-        SPAWN_PARTICLES = 5
+        SPAWN_PARTICLES = 50
     }
 }

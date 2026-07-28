@@ -2,6 +2,10 @@
 
 local ROOT = getroottable()
 
+// little silly to call ChatCommands this way but whatever it works.
+if ( "VSWeather" in ROOT && "ChatCommands" in VSWeather )
+    return VSWeather.ChatCommands.reset( null, null )
+
 local function Include( file ) { IncludeScript( "vs_weather/_core/" + file, ROOT ) }
 
 Include( "constants" )
@@ -11,24 +15,25 @@ Include( "create_scope" )
 ___CREATE_SCOPE( "__vs_weather", "VSWeather", "VSWeatherEntity", "VSWeatherThink" )
 
 Include( "../CONFIG.nut" )
-Include( "debuglog")
+Include( "debuglog" )
 Include( "util" )
 Include( "generators" )
 Include( "maplogic" )
 Include( "navutils" )
 
 DebugDrawClear()
-VSWeather.AllAreas              <- {}
-VSWeather.particle_count        <- 0
-VSWeather.weather_complete      <- false
-VSWeather.weather_editing       <- false
 VSWeather.TraceJobs             <- []
 VSWeather.FailedJobs            <- []
 VSWeather.SpawnedParticles      <- []
-VSWeather.ValidAreasForParticle <- {}
 
-VSWeather.Events <- {}
-VSWeather.ChatCommands <- {}
+VSWeather.AllAreas              <- {}
+VSWeather.ValidAreasForParticle <- {}
+VSWeather.Events                <- {}
+VSWeather.ChatCommands          <- {}
+
+VSWeather.particle_count        <- 0
+VSWeather.weather_editing       <- false
+VSWeather.weather_complete      <- false
 
 local trace_cfg = VSWeather.CONFIG.TRACING
 
@@ -88,6 +93,7 @@ function VSWeather::InitNav() {
 
         // convert to vectors + area corners
 
+        local idx = 0
         foreach( i, area in AllAreas ) {
 
             AllAreas[i] = area.GetCenter()
@@ -97,7 +103,8 @@ function VSWeather::InitNav() {
 
             for (local j = 0; j < NUM_CORNERS; j++) {
 
-                corners[i * NUM_CORNERS + j] = area.GetCorner( j )
+                idx = i * NUM_CORNERS + j
+                corners[idx] = area.GetCorner( j )
             }
         }
 
@@ -221,85 +228,94 @@ function VSWeather::RunSpokeTraceLoop( oncomplete, test_mode = false ) {
         // TODO: does not scale indefinitely with nav area size
         // hits SQQuerySuspend on large navs with ALL_NAV_CORNERS_SLOW = true
         // move all this stuff to a generator
-        foreach( area, info in particle_info ) {
 
-            // trace_job.cfg           = CONFIG.WeatherSystems[ particle_name ]
-            // trace_job.area          = area
-            // trace_job.area_name     = typeof area == "Vector" ? area.ToKVString() : area.GetCenter().ToKVString()
-            // trace_job.trace_end     = area.GetCenter()
-            // trace_job.trace_start   = area.GetCenter() + Vector( 0, 0, trace_job.cfg.travel_distance )
-            // trace_job.particle_name = particle_name
-            // trace_job.particle_info = particle_info
+        // in the meantime we will use the worst hack ever: catching SQQuerySuspend and just ignoring it
+        try {
 
-            // TraceJobs.append( trace_job )
+            foreach( area, info in particle_info ) {
 
-            area_center = area instanceof Vector ? area : area.GetCenter()
+                // trace_job.cfg           = CONFIG.WeatherSystems[ particle_name ]
+                // trace_job.area          = area
+                // trace_job.area_name     = typeof area == "Vector" ? area.ToKVString() : area.GetCenter().ToKVString()
+                // trace_job.trace_end     = area.GetCenter()
+                // trace_job.trace_start   = area.GetCenter() + Vector( 0, 0, trace_job.cfg.travel_distance )
+                // trace_job.particle_name = particle_name
+                // trace_job.particle_info = particle_info
 
-            TraceJobs[i] = {
+                // TraceJobs.append( trace_job )
 
-                // area_name     = area_center.ToKVString()
-                area          = area
-                particle_name = particle_name
-                particle_info = particle_info
-                completed     = false
-                trace_failed  = false
-                cfg           = cfg
-                trace_start   = area_center + Vector( 0, 0, cfg.travel_distance * particle_info[ area ].start_in_skybox )
-                trace_end     = area_center
+                area_center = area instanceof Vector ? area : area.GetCenter()
 
-                // Define trace directions (cardinal + ordinal directions)
-                trace_dirs = [
+                TraceJobs[i] = {
 
-                    // cardinal
-                    [ Vector(1, 0, 0),         { status = color_valid, last_result = 2.0 } ], // +X right
-                    [ Vector(-1, 0, 0),        { status = color_valid, last_result = 2.0 } ], // -X left
-                    [ Vector(0, 1, 0),         { status = color_valid, last_result = 2.0 } ], // +Y up
-                    [ Vector(0, -1, 0),        { status = color_valid, last_result = 2.0 } ], // -Y down
+                    // area_name     = area_center.ToKVString()
+                    area          = area
+                    particle_name = particle_name
+                    particle_info = particle_info
+                    completed     = false
+                    trace_failed  = false
+                    cfg           = cfg
+                    trace_start   = area_center + Vector( 0, 0, cfg.travel_distance * particle_info[ area ].start_in_skybox )
+                    trace_end     = area_center
 
-                    // ordinal
-                    [ Vector(0.5, 0.5, 0),     { status = color_valid, last_result = 2.0 } ], // +X +Y
-                    [ Vector(-0.5, -0.5, 0),   { status = color_valid, last_result = 2.0 } ], // -X -Y
-                    [ Vector(-0.5, 0.5, 0),    { status = color_valid, last_result = 2.0 } ], // -X +Y
-                    [ Vector(0.5, -0.5, 0),    { status = color_valid, last_result = 2.0 } ],  // +X -Y
+                    // Define trace directions (cardinal + ordinal directions)
+                    trace_dirs = [
 
-                    // sub-ordinal
-                    [ Vector(0.25, 0.25, 0),   { status = color_valid, last_result = 2.0 } ],   // +X +Y
-                    [ Vector(-0.25, -0.25, 0), { status = color_valid, last_result = 2.0 } ], // -X -Y
-                    [ Vector(-0.25, 0.25, 0),  { status = color_valid, last_result = 2.0 } ],  // -X +Y
-                    [ Vector(0.25, -0.25, 0),  { status = color_valid, last_result = 2.0 } ]   // +X -Y
-                ]
+                        // cardinal
+                        [ Vector(1, 0, 0),         { status = color_valid, last_result = 2.0 } ], // +X right
+                        [ Vector(-1, 0, 0),        { status = color_valid, last_result = 2.0 } ], // -X left
+                        [ Vector(0, 1, 0),         { status = color_valid, last_result = 2.0 } ], // +Y up
+                        [ Vector(0, -1, 0),        { status = color_valid, last_result = 2.0 } ], // -Y down
+
+                        // ordinal
+                        [ Vector(0.5, 0.5, 0),     { status = color_valid, last_result = 2.0 } ], // +X +Y
+                        [ Vector(-0.5, -0.5, 0),   { status = color_valid, last_result = 2.0 } ], // -X -Y
+                        [ Vector(-0.5, 0.5, 0),    { status = color_valid, last_result = 2.0 } ], // -X +Y
+                        [ Vector(0.5, -0.5, 0),    { status = color_valid, last_result = 2.0 } ],  // +X -Y
+
+                        // sub-ordinal
+                        [ Vector(0.25, 0.25, 0),   { status = color_valid, last_result = 2.0 } ],   // +X +Y
+                        [ Vector(-0.25, -0.25, 0), { status = color_valid, last_result = 2.0 } ], // -X -Y
+                        [ Vector(-0.25, 0.25, 0),  { status = color_valid, last_result = 2.0 } ],  // -X +Y
+                        [ Vector(0.25, -0.25, 0),  { status = color_valid, last_result = 2.0 } ]   // +X -Y
+                    ]
+                }
+                i++
             }
-            i++
+
+        } catch ( e ) { 
+            return RunSpokeTraceLoop( oncomplete, test_mode )
         }
     }
 
+    // local last_print_index  = 0
     local current_job_index = 0
-
     local z_step = 2
+    local should_continue = true
 
-    local function should_continue() {
+    local trace_full = {
 
-        local result = current_job_index in TraceJobs
-        if ( !result ) {
-            DebugLog.LOG_PRINT( "Done tracing! Spawning particles...", "INFO" )
-            // EntFire( "__vs_weather_fog", "Kill" )
-
-        }
-        return result
+        start   = null
+        end     = null
+        mask    = trace_cfg.TRACE_MASK
+        ignore  = LOCALPLAYER
+        enthit  = First()
+        allsolid   = false
+        startsolid = false
     }
 
     local function trace_step() {
 
-        // printl( "Tracing job " + current_job_index + " of " + trace_jobs.len() )
-
-        if ( !(current_job_index in TraceJobs) )
+        should_continue = current_job_index in TraceJobs
+        
+        if ( !should_continue )
             return
 
         local job = TraceJobs[current_job_index]
 
         if ( !job )
-            return current_job_index++
-
+            return should_continue = false
+    
         if ( job.completed ) {
 
             if ( job.area in ValidAreasForParticle[job.particle_name] )
@@ -310,6 +326,7 @@ function VSWeather::RunSpokeTraceLoop( oncomplete, test_mode = false ) {
 
         // printf( "Tracing job %d/%d: area %d, particle %s\n", current_job_index + 1, trace_jobs.len(), job.area_name, job.particle_name )
 
+
         // Perform one Z-level of tracing
         if ( job.trace_start.z > job.trace_end.z ) {
 
@@ -318,28 +335,19 @@ function VSWeather::RunSpokeTraceLoop( oncomplete, test_mode = false ) {
                 local dir  = dir_status[0]
                 local info = dir_status[1]
 
-                if ( job.completed )
-                    break
+                if ( job.completed ) break
 
                 local spoke_end = Vector( job.trace_start.x + dir.x * job.cfg.radius, job.trace_start.y + dir.y * job.cfg.radius, job.trace_start.z )
                 local trace_result = TraceLine( job.trace_start, spoke_end, LOCALPLAYER ) + TraceLine( spoke_end, job.trace_start, LOCALPLAYER )
-
-                local trace_full = {
-
-                    start   = job.trace_start
-                    end     = spoke_end
-                    mask    = trace_cfg.TRACE_MASK
-                    ignore  = LOCALPLAYER
-                    enthit  = First()
-                    allsolid   = false
-                    startsolid = false
-                }
 
                 // this trace hit a surface
                 // traces that progressively get smaller usually mean we're hitting a rock or something on the ground
                 if ( trace_result < info.last_result ) {
 
                     if ( do_expensive_trace ) {
+
+                        trace_full.start = job.trace_start
+                        trace_full.end   = spoke_end
 
                         TraceLineEx( trace_full )
 
@@ -388,6 +396,8 @@ function VSWeather::RunSpokeTraceLoop( oncomplete, test_mode = false ) {
                 // now check if we hit an avoidable entity, always fail this
                 if ( do_ent_avoid_trace && !job.trace_failed ) {
 
+                    trace_full.start <- job.trace_start
+                    trace_full.end   <- spoke_end
                     TraceLineEx( trace_full )
 
                     local enthit = trace_full.enthit
@@ -441,6 +451,11 @@ function VSWeather::RunSpokeTraceLoop( oncomplete, test_mode = false ) {
             if ( job.trace_failed )
                 delete ValidAreasForParticle[job.particle_name][job.area]
 
+            // if ( current_job_index - last_print_index > 1999 ) {
+
+            //     DebugLog.LOG_PRINT( "Tracing " + current_job_index + " of " + TraceJobs.len(), "DEBUG" )
+            //     last_print_index = current_job_index
+            // }
             current_job_index++
 
             // if ( test_mode ) {
@@ -451,12 +466,13 @@ function VSWeather::RunSpokeTraceLoop( oncomplete, test_mode = false ) {
             //     DebugDrawBox( job.trace_start, Vector( -radius, -radius, -job.cfg.travel_distance / 2 ), Vector( radius, radius, job.cfg.travel_distance / 2 ), 255, 0, 0, 0, 10.0 )
             // }
         }
+        should_continue = current_job_index in TraceJobs
     }
 
     if ( test_mode )
-        return Generators.StartGenerator( Generators.NonBlockingLoop( should_continue, CONFIG.ITERS_PER_FRAME.TRACE_FUNCS, trace_step, null, oncomplete ) )
+        return Generators.StartGenerator( Generators.NonBlockingLoop( @() should_continue, CONFIG.ITERS_PER_FRAME.TRACE_FUNCS, trace_step, null, oncomplete ) )
 
-    return Generators.NonBlockingLoop( should_continue, CONFIG.ITERS_PER_FRAME.TRACE_FUNCS, trace_step, null, oncomplete )
+    return Generators.NonBlockingLoop( @() should_continue, CONFIG.ITERS_PER_FRAME.TRACE_FUNCS, trace_step, null, oncomplete )
 }
 
 // VSWeather.Generators.NonBlockingLoop(  @() tracing, 1023, _SpokeTrace, null, @() tracing = false )
@@ -607,6 +623,9 @@ function VSWeather::Start() {
     // })
 
     // EntFire( "player", "SetFogController", "__vs_weather_fog" )
+    // kill some entities that may be running think functions and eating our perf budget
+    foreach( ent in ["phys_bone*", "info_particle_system", "tf_wea*", "tf_viewmodel", "item_*", "env_smokestack", "env_sprite", "func_dust*"] )
+        EntFire( ent, "Kill" )
 
     Generators.GeneratorChain([
 
@@ -625,12 +644,27 @@ function VSWeather::Start() {
             @(_) TraceJobs = array( ValidAreasForParticle.len() * AllAreas.len(), null )
         ],
         [
-
             function(oncomplete) {
 
                 return RunSpokeTraceLoop( oncomplete )
             },
-            @() Generators.StartGenerator( Generators.DeferredForEach( InitializeSpawnParticles(), CONFIG.ITERS_PER_FRAME.SPAWN_PARTICLES, SpawnParticles, null, @(_) weather_complete = true ) )
+
+            function() {
+            
+                DebugLog.LOG_PRINT( "Done tracing! Spawning particles...", "INFO" )
+                // EntFire( "__vs_weather_fog", "Kill" )
+
+                Generators.StartGenerator( Generators.DeferredForEach(
+                    InitializeSpawnParticles(),
+                    CONFIG.ITERS_PER_FRAME.SPAWN_PARTICLES,
+                    SpawnParticles,
+                    null,
+                    function(_) {
+                        weather_complete = true
+                        DebugLog.LOG_PRINT( "Spawned " + particle_count + " particles", "INFO" )
+                    }
+                ))
+            }
         ]
     ])
 }

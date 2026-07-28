@@ -1,4 +1,4 @@
-VSWeather.DebugLog <- {}
+VSWeather.DebugLog <- { in_developer = GetInt( "developer" ) }
 
 // Logging
 VSWeather.DebugLog.LOG_INFO    <- "\x0704C6DB[VSWEATHER]\x07FBECCB "
@@ -9,11 +9,12 @@ VSWeather.DebugLog.LOG_FATAL   <- "\x07FF0000[VSWEATHER]\x07FBECCB "
 
 function VSWeather::DebugLog::LOG_PRINT( message, severity = "INFO" ) {
 
-    message += "\n"
-    if ( severity == "DEBUG" && GetInt( "developer" ) < 2 )
+    if ( severity == "DEBUG" && !in_developer )
         return
+    
+    message += "\n"
 
-    ClientPrint( null, 3, this["LOG_" + severity] + message + "\x01" )
+    ClientPrint( null, in_developer ? HUD_PRINTCONSOLE : HUD_PRINTTALK, this["LOG_" + severity] + message + "\x01" )
 
     if ( severity == "ERROR" )
         error( message )

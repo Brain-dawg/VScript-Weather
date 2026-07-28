@@ -44,8 +44,6 @@ Debug Commands (probably not super useful):
 - The AVOID_THESE_ENTS config setting is really awful under-the-hood and slapped in last minute.  If you're exporting a VMF you should probably just fix these manually.
     - If you really need to use it (tons of func_brushes or something), set TRACE_FUNCS way lower than normal to avoid `SQQuerySuspend`.
 
-- Setting `SPAWN_PARTICLES` too high may cause overlapping particles, ignoring the `radius` and `overlap_mult` settings.
-
 ## FAQ
 - **This thing sucks and doesn't work at all for my map**
     - Play around with `CONFIG.nut` and see if you can get it to work better before writing it off.  You might need a smaller/narrower particle system.
