@@ -23,7 +23,7 @@ See `tf/scripts/vscripts/vs_weather/CONFIG.nut` for usage and configuration.
 ## Chat Commands
 - `.wstart` start the weather particle placement process.
 - `.wsave <instance|script>` save the results to a VMF instance or script file.
-- `.wreload`/`.wreset` reload the script for config changes.  Use this command instead of re-executing the main script.
+- `.wreload`/`.wreset` reload the script for config changes.
 - `.wnav <create|cleanup|subdivide|disconnect>` navmesh utilities, self-explanatory.
 - `.whelp` simply prints every chat command.
 
@@ -49,18 +49,14 @@ Debug Commands (probably not super useful):
     - Play around with `CONFIG.nut` and see if you can get it to work better before writing it off.  You might need a smaller/narrower particle system.
 
 - **I'm getting a bunch of "does not exist" errors in console**
-    - You did not use `.wreload`/`.wreset` and tried to `script_execute vscript_weather` a second time.
+    - This may happen after getting `SQQuerySuspend` errors.
     - Run `ent_fire __vs_weather* Kill` in console, then `script_execute vscript_weather`.
-    - This may also happen after getting `SQQuerySuspend` errors, same fix applies.
 
 - **I'm getting a bunch of "Script terminated by SQQuerySuspend" errors**
     - See `tf/scripts/vscripts/vs_weather/CONFIG.nut` for more info.
 
 - **It worked but now I'm hitting the edict limit in playtests**
     - The MAX_EDICTS check only checks if spawning our particles will hit the limit, it doesn't account for players/other entities that may spawn later.
-
-- **I set `developer 2` and now my game is completely frozen and busted when I open console or chat from all the debug message spam**
-    - Yea my bad, don't do this for now...
 
 ## Credit/License
 You are free to use the generated weather instances and scripts as you please, including commercial use, credit me/this GitHub repo in your map description.  That being said, the `.wnav disconnect` and `.wnav cleanup` commands rely on a modified version of the script for disconnecting unreachable areas, consult those credits if you use these features.

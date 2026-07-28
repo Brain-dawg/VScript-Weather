@@ -220,7 +220,7 @@ VSWeather.CONFIG <- {
          * set this as high as you can until perf warnings are safely between 70-90ms                      *
          * >100ms will hit SQQuerySuspend                                                                  *
          ***************************************************************************************************/
-        TRACE_FUNCS = 800
+        TRACE_FUNCS = 1500
 
         /********************************************
          * number of nav areas to process per frame *
